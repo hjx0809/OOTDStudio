@@ -1,9 +1,9 @@
 {
-  "name": "oul-studio",
+  "name": "ootd-studio",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "OUL Studio — a private, weather-aware AI wardrobe and try-on app.",
+  "description": "OOTD Studio — a private, weather-aware AI wardrobe and try-on app.",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc --noEmit && vite build",

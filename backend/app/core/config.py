@@ -21,7 +21,7 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
-    app_name: str = "OUL Studio API"
+    app_name: str = "OOTD Studio API"
     app_version: str = "1.0.0"
     environment: str = "development"
     debug: bool = False

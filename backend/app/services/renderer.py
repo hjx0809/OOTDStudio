@@ -156,7 +156,7 @@ def _render_lookboard(
     serif_small = _font("InstrumentSerif-Regular.ttf", 44)
 
     # Brand lockup and look badge.
-    draw.text((72, 60), "OUL", font=_font("Manrope-Variable.ttf", 34, 760), fill=ink)
+    draw.text((72, 60), "OOTD", font=_font("Manrope-Variable.ttf", 34, 760), fill=ink)
     draw.text((72, 104), "STUDIO / TOMORROW'S EDIT", font=manrope_small, fill=muted)
     look_index = outfit.sort_order + 1
     badge_text = f"LOOK {look_index:02d}"
@@ -240,7 +240,7 @@ def _render_lookboard(
         )
 
     draw.text((76, 1400), "PERSONAL LOOKBOARD", font=manrope_small, fill=muted)
-    draw.text((1008, 1400), "OUL.STUDIO", font=manrope_small, fill=accent, anchor="ra")
+    draw.text((1008, 1400), "OOTD.STUDIO", font=manrope_small, fill=accent, anchor="ra")
 
     buffer = io.BytesIO()
     canvas.convert("RGB").save(buffer, "JPEG", quality=92, optimize=True, progressive=True)

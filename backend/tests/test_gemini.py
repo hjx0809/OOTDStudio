@@ -39,7 +39,7 @@ def test_text_planning_passes_json_config_and_parses_output(monkeypatch):
     assert call["model"] == settings.gemini_text_model
     assert call["contents"] == "brief"
     assert call["config"].response_mime_type == "application/json"
-    assert "OUL Studio" in call["config"].system_instruction
+    assert "OOTD Studio" in call["config"].system_instruction
 
 
 def test_image_render_extracts_inline_image(monkeypatch):

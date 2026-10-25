@@ -1,5 +1,5 @@
-/* OUL Studio service worker — offline shell + safe runtime caching. */
-const CACHE = 'oul-shell-v2'
+/* OOTD Studio service worker — offline shell + safe runtime caching. */
+const CACHE = 'ootd-shell-v3'
 const SHELL = ['/', '/manifest.webmanifest', '/favicon.svg', '/icons/icon-192.png']
 
 self.addEventListener('install', (event) => {

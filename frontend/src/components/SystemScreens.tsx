@@ -35,7 +35,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBound
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    console.error('OUL UI error', error, info.componentStack)
+    console.error('OOTD Studio UI error', error, info.componentStack)
   }
 
   render() {

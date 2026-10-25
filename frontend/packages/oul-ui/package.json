@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "OUL UI — the mobile-first, minimal white component system used by OUL Studio.",
+  "description": "OUL UI — the mobile-first, minimal white component system used by OOTD Studio.",
   "sideEffects": ["*.css"],
   "main": "./src/index.ts",
   "types": "./src/index.ts",

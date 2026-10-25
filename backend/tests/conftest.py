@@ -6,7 +6,7 @@ import os
 import tempfile
 from pathlib import Path
 
-TEST_ROOT = Path(tempfile.mkdtemp(prefix="oul-tests-"))
+TEST_ROOT = Path(tempfile.mkdtemp(prefix="ootd-tests-"))
 os.environ["DATABASE_URL"] = f"sqlite:///{TEST_ROOT / 'test.db'}"
 os.environ["UPLOAD_DIR"] = str(TEST_ROOT / "uploads")
 os.environ["SECRET_KEY"] = "test-secret-key-not-for-production"

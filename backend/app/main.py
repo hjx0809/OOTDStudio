@@ -1,4 +1,4 @@
-"""FastAPI application entrypoint for OUL Studio."""
+"""FastAPI application entrypoint for OOTD Studio."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
 )
-logger = logging.getLogger("oul.api")
+logger = logging.getLogger("ootd.api")
 settings = get_settings()
 
 
@@ -36,7 +36,7 @@ async def lifespan(_app: FastAPI):
     if settings.is_production and settings.secret_key.startswith("change-me"):
         logger.error("SECRET_KEY is still the development default in production")
     logger.info(
-        "OUL API ready | env=%s ai=%s",
+        "OOTD Studio API ready | env=%s ai=%s",
         settings.environment,
         "enabled" if settings.ai_enabled else "atelier-only",
     )

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <rect width="64" height="64" rx="14" fill="#111111"/>
-  <text x="10" y="42" font-family="-apple-system, 'Helvetica Neue', Arial, sans-serif" font-weight="800" font-size="22" fill="#FFFFFF" letter-spacing="1">OUL</text>
-  <circle cx="54" cy="24" r="3" fill="#FFFFFF"/>
+  <text x="6" y="40" font-family="-apple-system, 'Helvetica Neue', Arial, sans-serif" font-weight="800" font-size="16" fill="#FFFFFF" textLength="46" lengthAdjust="spacingAndGlyphs">OOTD</text>
+  <circle cx="56.5" cy="29" r="2.5" fill="#FFFFFF"/>
 </svg>

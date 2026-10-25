@@ -1,4 +1,4 @@
-"""Persistent domain models for OUL Studio."""
+"""Persistent domain models for OOTD Studio."""
 
 from __future__ import annotations
 

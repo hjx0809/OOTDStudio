@@ -1,10 +1,10 @@
-# OUL Studio
+# OOTD Studio
 
 **Tomorrow, dress like yourself.**
 
-OUL Studio is a mobile-first personal AI stylist. It first learns your body measurements and your real wardrobe, then composes several outfits for tomorrow's occasion, weather, and any must-wear item — using only the clothes you actually own — and generates a try-on image of you with Google Gemini. Swipe left and right to pick a look, mark any piece as "unavailable" or "wear next time" at any moment, and regenerate.
+OOTD Studio is a mobile-first personal AI stylist. It first learns your body measurements and your real wardrobe, then composes several outfits for tomorrow's occasion, weather, and any must-wear item — using only the clothes you actually own — and generates a try-on image of you with Google Gemini. Swipe left and right to pick a look, mark any piece as "unavailable" or "wear next time" at any moment, and regenerate.
 
-This is not a shopping feed and not a random outfit collage. The core constraint of OUL is: **start from your wardrobe only**. When the wardrobe cannot support the occasion, the app says so explicitly and gives concrete shopping suggestions.
+This is not a shopping feed and not a random outfit collage. The core constraint of OOTD Studio is: **start from your wardrobe only**. When the wardrobe cannot support the occasion, the app says so explicitly and gives concrete shopping suggestions.
 
 ---
 
