@@ -8,6 +8,7 @@ import { AppShell, BareLayout, ScrollToTop } from '@/components/Layout'
 import { SplashScreen } from '@/components/SystemScreens'
 import { LoginPage, RegisterPage } from '@/pages/auth/AuthPages'
 import { WelcomePage } from '@/pages/auth/WelcomePage'
+import { HistoryPage } from '@/pages/history/HistoryPage'
 import { HomePage } from '@/pages/home/HomePage'
 import { LooksPage } from '@/pages/looks/LooksPage'
 import { OnboardingPage } from '@/pages/onboarding/OnboardingPage'
@@ -97,6 +98,7 @@ export default function App() {
                   <Route element={<AppShell />}>
                     <Route index element={<HomePage />} />
                     <Route path="/wardrobe" element={<WardrobePage />} />
+                    <Route path="/history" element={<HistoryPage />} />
                     <Route path="/me" element={<ProfilePage />} />
                   </Route>
 

@@ -12,7 +12,7 @@ import {
   WandSparkles,
 } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode, type UIEvent } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useToast } from '@/app/ToastProvider'
 import { PageHeader } from '@/components/PageHeader'
 import { WeatherIcon } from '@/components/WeatherIcon'
@@ -274,6 +274,7 @@ function StateScreen({
 export function LooksPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const queryClient = useQueryClient()
   const toast = useToast()
   const recommendationQuery = useRecommendation(id)
@@ -385,6 +386,9 @@ export function LooksPage() {
   }
 
   const backToStyle = () => navigate('/')
+  // Looks opened from the history tab return there; everything else goes home.
+  const backTo = (location.state as { from?: string } | null)?.from ?? '/'
+  const goBack = () => navigate(backTo)
 
   if (recommendationQuery.isLoading) {
     return (
@@ -396,7 +400,7 @@ export function LooksPage() {
 
   if (recommendationQuery.isError || !recommendation) {
     return (
-      <StateScreen onBack={() => navigate('/')}>
+      <StateScreen onBack={goBack}>
         <div className="center-state">
           <h2>Look not found</h2>
           <Button onClick={backToStyle}>New look</Button>
@@ -407,7 +411,7 @@ export function LooksPage() {
 
   if (recommendation.status === 'planning') {
     return (
-      <StateScreen onBack={backToStyle}>
+      <StateScreen onBack={goBack}>
         <div className="center-state">
           <Spinner size="lg" />
           <h2>Styling your looks…</h2>
@@ -419,7 +423,7 @@ export function LooksPage() {
 
   if (recommendation.status === 'failed') {
     return (
-      <StateScreen onBack={backToStyle}>
+      <StateScreen onBack={goBack}>
         <div className="center-state">
           <h2>Something went wrong</h2>
           <p className="muted">
@@ -435,7 +439,7 @@ export function LooksPage() {
 
   if (recommendation.status === 'wardrobe_gap' || outfits.length === 0) {
     return (
-      <StateScreen title="Not enough pieces" onBack={backToStyle}>
+      <StateScreen title="Not enough pieces" onBack={goBack}>
         {recommendation.scenario_note && <p className="muted">{recommendation.scenario_note}</p>}
         <WarningList warnings={recommendation.warnings} />
         {recommendation.shopping_suggestions.length > 0 && (
@@ -466,7 +470,7 @@ export function LooksPage() {
   return (
     <div className="page page--bare looks">
       <header className="looks__bar">
-        <button type="button" className="round-button" aria-label="Back" onClick={backToStyle}>
+        <button type="button" className="round-button" aria-label="Back" onClick={goBack}>
           <ArrowLeft size={22} />
         </button>
         <span className="looks__tag">Styled for you</span>

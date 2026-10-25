@@ -1,10 +1,11 @@
-import { Columns2, Sparkles, UserRound } from 'lucide-react'
+import { Columns2, History, Sparkles, UserRound } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 
 const items = [
   { to: '/', label: 'For you', icon: Sparkles, end: true },
   { to: '/wardrobe', label: 'Closet', icon: Columns2 },
+  { to: '/history', label: 'History', icon: History },
   { to: '/me', label: 'Profile', icon: UserRound },
 ]
 

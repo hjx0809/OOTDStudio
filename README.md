@@ -117,6 +117,15 @@ PY
 # GEMINI_API_KEY=your-google-ai-studio-key
 ```
 
+Without `make`, install manually:
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt            # backend runtime only
+pip install -r backend/requirements-dev.txt # runtime + pytest
+cd frontend && npm install
+```
+
 ### 3. Development mode
 
 Terminal one:

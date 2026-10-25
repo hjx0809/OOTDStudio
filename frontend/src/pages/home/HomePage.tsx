@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowRight, Check, ChevronRight, Lock, Plus, Sparkles, UserRound } from 'lucide-react'
+import { ArrowRight, Check, Lock, Plus, UserRound } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/app/AuthProvider'
@@ -15,17 +15,9 @@ import { WeatherIcon } from '@/components/WeatherIcon'
 import { api, ApiError } from '@/lib/api'
 import { trackGeneration } from '@/lib/generation'
 import { queryKeys, useHistory, useWardrobe, useWeather } from '@/lib/queries'
-import type { OccasionType, RecommendationSummary, Weather, WardrobeItem } from '@/lib/types'
-import {
-  OCCASION_META,
-  cn,
-  formatLookDate,
-  getGreetingName,
-  greeting,
-  inferOccasionType,
-  pluralLooks,
-} from '@/lib/utils'
-import { Avatar, Button, InlineNotice, Sheet, Skeleton, Spinner } from 'oul-ui'
+import type { OccasionType, Weather, WardrobeItem } from '@/lib/types'
+import { cn, getGreetingName, greeting, inferOccasionType } from '@/lib/utils'
+import { Avatar, Button, InlineNotice, Sheet, Skeleton } from 'oul-ui'
 
 interface Plan {
   label: string
@@ -89,63 +81,6 @@ function PlanRow({
           )
         })}
       </div>
-    </section>
-  )
-}
-
-function historyStatus(look: RecommendationSummary): string {
-  if (look.status === 'planning') return 'Styling…'
-  if (look.status === 'failed') return 'Didn’t finish'
-  if (look.status === 'wardrobe_gap' || look.look_count === 0) return 'Needs more pieces'
-  return pluralLooks(look.look_count)
-}
-
-function LookHistory({
-  looks,
-  loading,
-}: {
-  looks: RecommendationSummary[]
-  loading: boolean
-}) {
-  return (
-    <section className="history">
-      <div className="history__head">
-        <h2 className="eyebrow">Your looks</h2>
-        {looks.length > 0 && <span>{looks.length} saved</span>}
-      </div>
-      {loading ? (
-        <div className="history__list">
-          {[0, 1, 2].map((index) => (
-            <Skeleton key={index} className="history-row history-row--skeleton" />
-          ))}
-        </div>
-      ) : looks.length === 0 ? (
-        <p className="muted">Looks you generate are saved here.</p>
-      ) : (
-        <div className="history__list">
-          {looks.map((look) => (
-            <Link key={look.id} to={`/looks/${look.id}`} className="history-row">
-              <span className="history-row__thumb">
-                {look.cover_image_url ? (
-                  <img src={look.cover_image_url} alt="" loading="lazy" />
-                ) : look.status === 'planning' ? (
-                  <Spinner size="sm" />
-                ) : (
-                  <Sparkles size={20} strokeWidth={1.6} />
-                )}
-              </span>
-              <span className="history-row__copy">
-                <strong>{look.occasion}</strong>
-                <span>
-                  {OCCASION_META[look.occasion_type]?.label ?? 'Look'} · {historyStatus(look)} ·{' '}
-                  {formatLookDate(look.created_at)}
-                </span>
-              </span>
-              <ChevronRight size={18} className="history-row__chevron" />
-            </Link>
-          ))}
-        </div>
-      )}
     </section>
   )
 }
@@ -362,6 +297,15 @@ export function HomePage() {
         )}
       </button>
 
+      {missingBasics.length > 0 && !wardrobeQuery.isLoading && (
+        <InlineNotice tone="warning">
+          Your closet is missing {missingBasics.join(', ')} —{' '}
+          <Link to="/wardrobe/new" className="link">
+            add
+          </Link>
+        </InlineNotice>
+      )}
+
       <div className="composer">
         {error && <InlineNotice tone="critical">{error}</InlineNotice>}
         <textarea
@@ -386,17 +330,6 @@ export function HomePage() {
           Generate looks
         </Button>
       </div>
-
-      {missingBasics.length > 0 && !wardrobeQuery.isLoading && (
-        <InlineNotice tone="warning">
-          Your closet is missing {missingBasics.join(', ')} —{' '}
-          <Link to="/wardrobe/new" className="link">
-            add
-          </Link>
-        </InlineNotice>
-      )}
-
-      <LookHistory looks={looks} loading={historyQuery.isLoading} />
 
       <Sheet open={weatherOpen} onClose={() => setWeatherOpen(false)} title="Tomorrow’s weather">
         <div className="form-stack">
