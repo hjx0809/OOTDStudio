@@ -161,7 +161,7 @@ export function Sheet({
       <button
         type="button"
         className="o-sheet__backdrop"
-        aria-label="关闭"
+        aria-label="Close"
         onClick={onClose}
       />
       <section
@@ -169,7 +169,7 @@ export function Sheet({
         className={cn('o-sheet', className)}
         role="dialog"
         aria-modal="true"
-        aria-label={title ?? '面板'}
+        aria-label={title ?? 'Panel'}
         tabIndex={-1}
       >
         <div className="o-sheet__grabber" aria-hidden="true" />
@@ -178,7 +178,7 @@ export function Sheet({
             {title && <h2 className="o-sheet__title">{title}</h2>}
             {description && <p className="o-sheet__description">{description}</p>}
           </div>
-          <IconButton label="关闭" variant="surface" size="sm" onClick={onClose}>
+          <IconButton label="Close" variant="surface" size="sm" onClick={onClose}>
             <X size={18} />
           </IconButton>
         </div>

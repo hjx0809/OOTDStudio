@@ -108,7 +108,7 @@ def _serialize_outfit_item(
         if item is not None
         else snapshot.get("force_include", False),
         "category_label": snapshot.get("category_label")
-        or CATEGORY_LABELS.get(snapshot.get("category", ""), "单品"),
+        or CATEGORY_LABELS.get(snapshot.get("category", ""), "Piece"),
     }
     return OutfitItemSnapshot.model_validate(payload)
 
@@ -132,8 +132,6 @@ def serialize_outfit(outfit: Outfit, db: Session, token: str) -> OutfitRead:
         image_status=outfit.image_status,
         image_kind=outfit.image_kind,
         image_error=outfit.image_error,
-        background_mode=outfit.background_mode,
-        background_prompt=outfit.background_prompt,
     )
 
 
@@ -150,8 +148,6 @@ def serialize_recommendation(
         occasion=recommendation.occasion,
         occasion_type=recommendation.occasion_type,
         weather=WeatherSnapshot.model_validate(recommendation.weather or {}),
-        background_mode=recommendation.background_mode,
-        background_prompt=recommendation.background_prompt,
         forced_item_ids=recommendation.forced_item_ids or [],
         status=recommendation.status,
         ai_source=recommendation.ai_source,

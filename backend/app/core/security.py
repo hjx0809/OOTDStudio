@@ -52,13 +52,13 @@ def decode_access_token(token: str, settings: Settings | None = None) -> str:
     except InvalidTokenError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="登录状态已失效，请重新登录",
+            detail="Your session has expired. Please sign in again.",
             headers={"WWW-Authenticate": "Bearer"},
         ) from exc
     if payload.get("type") != "access" or not payload.get("sub"):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="无效的登录凭证",
+            detail="Invalid credentials",
         )
     return str(payload["sub"])
 
@@ -70,7 +70,7 @@ def get_current_user(
     if credentials is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="请先登录",
+            detail="Please sign in first",
             headers={"WWW-Authenticate": "Bearer"},
         )
     user_id = decode_access_token(credentials.credentials)
@@ -78,7 +78,7 @@ def get_current_user(
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="账户不存在或已被删除",
+            detail="Account not found or deleted",
         )
     return user
 
@@ -98,9 +98,9 @@ def get_token_from_request(request: Request) -> str | None:
 def get_media_user(request: Request, db: DbSession) -> User:
     token = get_token_from_request(request)
     if not token:
-        raise HTTPException(status_code=401, detail="缺少媒体访问凭证")
+        raise HTTPException(status_code=401, detail="Missing media access token")
     user_id = decode_access_token(token)
     user = db.get(User, user_id)
     if user is None:
-        raise HTTPException(status_code=401, detail="账户不存在")
+        raise HTTPException(status_code=401, detail="Account not found")
     return user

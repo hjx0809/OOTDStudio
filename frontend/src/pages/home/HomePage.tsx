@@ -52,7 +52,7 @@ export function HomePage() {
           type="button"
           className="home-top__avatar"
           onClick={() => navigate('/me')}
-          aria-label="打开我的主页"
+          aria-label="Open my profile"
         >
           <Avatar
             src={user.base_photo_thumb_url || user.base_photo_url}
@@ -67,16 +67,16 @@ export function HomePage() {
         <div className="home-greeting__date">
           <span>{formatDateLabel()}</span>
           <span className="home-greeting__dot" />
-          <span>{user.city || '当前位置'}</span>
+          <span>{user.city || 'Current location'}</span>
         </div>
         <h1>
-          {greeting()}，{firstName}
+          {greeting()}, {firstName}
           <span className="home-greeting__accent">.</span>
         </h1>
-        <p>今晚想好明天的造型，早上就能从容出门。</p>
+        <p>Plan tomorrow's look tonight, and walk out easy in the morning.</p>
       </section>
 
-      <section className="weather-panel" aria-label="明天天气">
+      <section className="weather-panel" aria-label="Tomorrow's weather">
         {weatherQuery.isLoading ? (
           <div className="weather-panel__loading">
             <Skeleton className="weather-panel__skeleton-icon" />
@@ -95,8 +95,8 @@ export function HomePage() {
               <MapPin size={21} />
             </span>
             <span className="weather-panel__empty-copy">
-              <strong>设定城市，查看明日天气</strong>
-              <span>天气会影响面料、层次和鞋履选择</span>
+              <strong>Set your city to see tomorrow's weather</strong>
+              <span>Weather shapes fabric, layers, and shoes</span>
             </span>
             <ArrowUpRight size={17} />
           </button>
@@ -120,10 +120,10 @@ export function HomePage() {
             <div className="weather-panel__meta">
               <span>
                 <MapPin size={12} />
-                {weather.city || user.city || '当前位置'}
+                {weather.city || user.city || 'Current location'}
               </span>
-              <span>{weather.precipitation_probability}% 降水</span>
-              {weather.wind_speed >= 25 && <span>{Math.round(weather.wind_speed)} km/h 风</span>}
+              <span>{weather.precipitation_probability}% rain</span>
+              {weather.wind_speed >= 25 && <span>{Math.round(weather.wind_speed)} km/h wind</span>}
             </div>
           </>
         )}
@@ -146,8 +146,8 @@ export function HomePage() {
             already <em>considered.</em>
           </h2>
           <p>
-            说说明天的场景，OUL 会从你的衣橱里组合 3 套造型，
-            并把你本人放进试穿画面。
+            Tell OUL the occasion. It composes three looks from your wardrobe and puts you in the
+            try-on.
           </p>
           <div className="home-hero__actions">
             <Button
@@ -155,7 +155,7 @@ export function HomePage() {
               rightIcon={<ArrowUpRight size={17} />}
               onClick={() => navigate('/style')}
             >
-              开始明天的造型
+              Start tomorrow's look
             </Button>
             <span className="home-hero__looks">03 LOOKS · SWIPE TO CHOOSE</span>
           </div>
@@ -169,10 +169,10 @@ export function HomePage() {
       <section className="home-section">
         <SectionHeader
           eyebrow="YOUR WARDROBE"
-          title="衣橱速览"
+          title="Wardrobe at a glance"
           action={
             <Link to="/wardrobe" className="text-link">
-              全部 {items.length > 0 ? items.length : ''}
+              All {items.length > 0 ? items.length : ''}
               <ArrowUpRight size={14} />
             </Link>
           }
@@ -186,15 +186,15 @@ export function HomePage() {
         ) : recentItems.length === 0 ? (
           <EmptyState
             icon={<Shirt size={21} />}
-            title="先放进几件常穿的衣服"
-            description="至少一件上装、一件下装和一双鞋，OUL 就能开始为你组合造型。"
+            title="Start with a few favorites"
+            description="One top, one bottom, and a pair of shoes is enough for OUL to start styling."
             action={
               <Button
                 size="sm"
                 leftIcon={<Plus size={15} />}
                 onClick={() => navigate('/wardrobe/new')}
               >
-                添加第一件单品
+                Add your first item
               </Button>
             }
           />
@@ -227,7 +227,7 @@ export function HomePage() {
               onClick={() => navigate('/wardrobe/new')}
             >
               <Plus size={19} />
-              <span>添加单品</span>
+              <span>Add item</span>
             </button>
           </div>
         )}
@@ -236,11 +236,11 @@ export function HomePage() {
       <section className="home-section home-section--last">
         <SectionHeader
           eyebrow="RECENT EDITS"
-          title="最近的造型"
+          title="Recent looks"
           action={
             looks.length > 0 ? (
               <Link to="/history" className="text-link">
-                全部
+                All
                 <ArrowUpRight size={14} />
               </Link>
             ) : undefined
@@ -257,8 +257,8 @@ export function HomePage() {
               <Sparkles size={18} />
             </span>
             <span>
-              <strong>还没有造型记录</strong>
-              <em>生成第一组「明日编辑」，看看衣橱能走多远。</em>
+              <strong>No looks yet</strong>
+              <em>Create your first tomorrow edit and see how far your wardrobe can go.</em>
             </span>
             <ArrowUpRight size={17} />
           </button>
@@ -282,10 +282,10 @@ export function HomePage() {
                   <span className="look-rail__shade" />
                   <span className="look-rail__badge">
                     {look.status === 'planning'
-                      ? '生成中'
+                      ? 'Styling'
                       : look.status === 'failed'
-                        ? '未完成'
-                        : `${look.look_count} 套`}
+                        ? 'Unfinished'
+                        : `${look.look_count} looks`}
                   </span>
                 </span>
                 <span className="look-rail__title">{look.occasion}</span>

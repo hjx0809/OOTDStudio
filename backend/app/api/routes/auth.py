@@ -40,7 +40,7 @@ class LoginThrottle:
         if len(bucket) >= self.limit:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="登录尝试过于频繁，请十分钟后再试",
+                detail="Too many sign-in attempts. Please try again in ten minutes.",
             )
 
     def fail(self, key: str) -> None:
@@ -60,7 +60,7 @@ def register(payload: RegisterRequest, db: DbSession) -> AuthResponse:
     if existing is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="这个邮箱已经注册，直接登录即可",
+            detail="This email is already registered. Please sign in instead.",
         )
     user = User(
         email=email,
@@ -75,7 +75,7 @@ def register(payload: RegisterRequest, db: DbSession) -> AuthResponse:
         db.commit()
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="这个邮箱已经注册") from exc
+        raise HTTPException(status_code=409, detail="This email is already registered.") from exc
     db.refresh(user)
     token = create_access_token(user.id)
     return AuthResponse(access_token=token, user=serialize_user(user, token))
@@ -91,7 +91,7 @@ def login(payload: LoginRequest, request: Request, db: DbSession) -> AuthRespons
         throttle.fail(throttle_key)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="邮箱或密码不正确",
+            detail="Incorrect email or password",
         )
     throttle.clear(throttle_key)
     token = create_access_token(user.id)

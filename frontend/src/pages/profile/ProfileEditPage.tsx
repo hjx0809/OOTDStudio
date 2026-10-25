@@ -22,9 +22,9 @@ import {
 } from 'oul-ui'
 
 const FIT_OPTIONS: Array<{ value: FitPreference; label: string; sublabel: string }> = [
-  { value: 'tailored', label: '利落合身', sublabel: '贴合线条' },
-  { value: 'regular', label: '自然合身', sublabel: '留一点余量' },
-  { value: 'relaxed', label: '松弛廓形', sublabel: '宽松留白' },
+  { value: 'tailored', label: 'Tailored', sublabel: 'Close to the line' },
+  { value: 'regular', label: 'Regular', sublabel: 'A little room' },
+  { value: 'relaxed', label: 'Relaxed', sublabel: 'Easy, roomy volume' },
 ]
 
 function valueText(value: number | null): string {
@@ -76,11 +76,11 @@ export function ProfileEditPage() {
       const updated = await api.users.uploadBasePhoto(blob, filename)
       updateUser(updated)
       setPhotoPreview(updated.base_photo_url || updated.base_photo_thumb_url)
-      toast.success('基础照片已更新', '下一组试穿会使用这张照片。')
+      toast.success('Base photo updated', 'Your next try-on will use this photo.')
     } catch (requestError) {
       setPhotoPreview(user.base_photo_url || user.base_photo_thumb_url)
       toast.error(
-        requestError instanceof ApiError ? requestError.message : '照片没有上传成功',
+        requestError instanceof ApiError ? requestError.message : "Photo didn't upload",
       )
     } finally {
       setPhotoBusy(false)
@@ -89,7 +89,7 @@ export function ProfileEditPage() {
 
   const detectLocation = () => {
     if (!navigator.geolocation) {
-      toast.error('当前浏览器不支持定位，请手动填写城市')
+      toast.error("Your browser can't detect location. Enter a city manually.")
       return
     }
     setLocating(true)
@@ -98,11 +98,11 @@ export function ProfileEditPage() {
         setLatitude(position.coords.latitude)
         setLongitude(position.coords.longitude)
         setLocating(false)
-        toast.success('已记录当前位置', city ? city : '天气会使用当前位置获取')
+        toast.success('Current location saved', city ? city : 'Weather will use your current location')
       },
       () => {
         setLocating(false)
-        toast.error('没有取得定位权限，请手动填写城市')
+        toast.error('Location access was denied. Enter a city manually.')
       },
       { enableHighAccuracy: false, timeout: 10_000, maximumAge: 600_000 },
     )
@@ -111,19 +111,19 @@ export function ProfileEditPage() {
   const save = async () => {
     setError(null)
     if (!displayName.trim()) {
-      setError('称呼不能为空')
+      setError("Name can't be empty")
       return
     }
     if (!numberOrNull(height) || !numberOrNull(weight)) {
-      setError('身高和体重不能为空')
+      setError('Height and weight are required')
       return
     }
     if (numberOrNull(height)! < 120 || numberOrNull(height)! > 230) {
-      setError('身高需要在 120–230 cm 之间')
+      setError('Height must be between 120–230 cm')
       return
     }
     if (numberOrNull(weight)! < 30 || numberOrNull(weight)! > 300) {
-      setError('体重需要在 30–300 kg 之间')
+      setError('Weight must be between 30–300 kg')
       return
     }
     if (
@@ -132,11 +132,11 @@ export function ProfileEditPage() {
       !numberOrNull(hip) ||
       !numberOrNull(shoeSize)
     ) {
-      setError('胸围、腰围、臀围和鞋码需要保持完整，才能给出准确造型')
+      setError('Chest, waist, hips, and shoe size are needed for an accurate look')
       return
     }
     if (styles.length < 2) {
-      setError('请至少选择两种风格偏好')
+      setError('Pick at least two style preferences')
       return
     }
     setSaving(true)
@@ -155,7 +155,7 @@ export function ProfileEditPage() {
         skin_tone: skinTone || null,
         style_preferences: styles,
         avoid_colors: avoidColors
-          .split(/[,，]/)
+          .split(',')
           .map((item) => item.trim())
           .filter(Boolean)
           .slice(0, 10),
@@ -164,11 +164,11 @@ export function ProfileEditPage() {
         longitude,
       } satisfies Partial<User>)
       updateUser(updated)
-      toast.success('档案已更新')
+      toast.success('Profile updated')
       navigate('/me', { replace: true })
     } catch (requestError) {
       setError(
-        requestError instanceof ApiError ? requestError.message : '保存没有完成，请重试',
+        requestError instanceof ApiError ? requestError.message : "Couldn't save. Try again.",
       )
     } finally {
       setSaving(false)
@@ -177,12 +177,12 @@ export function ProfileEditPage() {
 
   return (
     <div className="profile-edit-page">
-      <PageHeader title="编辑档案" eyebrow="YOUR BODY, YOUR RULES" backTo="/me" />
+      <PageHeader title="Edit profile" eyebrow="YOUR BODY, YOUR RULES" backTo="/me" />
 
       <div className="profile-edit-intro">
         <p className="o-eyebrow">MAKE THE STYLING TRULY YOURS</p>
-        <h1>让造型更贴近真实的身体与生活。</h1>
-        <p>更新后，下一组推荐会使用新的参数。历史造型不会被改动。</p>
+        <h1>Make every look closer to your real body and life.</h1>
+        <p>Your next recommendation will use the new details. Past looks stay as they are.</p>
       </div>
 
       {error && <InlineNotice tone="critical">{error}</InlineNotice>}
@@ -190,18 +190,18 @@ export function ProfileEditPage() {
       <section className="profile-edit-section">
         <div className="profile-edit-section__head">
           <span className="o-eyebrow">IDENTITY</span>
-          <h2>称呼与照片</h2>
+          <h2>Name & photo</h2>
         </div>
         <TextField
-          label="称呼"
+          label="Name"
           value={displayName}
           maxLength={80}
           onChange={(event) => setDisplayName(event.target.value)}
         />
         <ImagePicker
           previewUrl={photoPreview}
-          title="更换全身基础照片"
-          subtitle="保持全身入镜、光线均匀；新照片会用于下一次试穿"
+          title="Change your full-length base photo"
+          subtitle="Full body in frame, even light — this photo is used for your next try-on"
           aspect="tall"
           variant="base"
           disabled={photoBusy}
@@ -210,7 +210,7 @@ export function ProfileEditPage() {
         {photoBusy && (
           <p className="profile-edit-hint">
             <span className="o-spinner o-spinner--sm" />
-            正在保存新照片…
+            Saving new photo…
           </p>
         )}
       </section>
@@ -218,11 +218,11 @@ export function ProfileEditPage() {
       <section className="profile-edit-section">
         <div className="profile-edit-section__head">
           <span className="o-eyebrow">MEASUREMENTS</span>
-          <h2>身体参数</h2>
+          <h2>Body profile</h2>
         </div>
         <div className="form-row">
           <TextField
-            label="身高"
+            label="Height"
             type="number"
             inputMode="decimal"
             value={height}
@@ -230,7 +230,7 @@ export function ProfileEditPage() {
             hint="cm"
           />
           <TextField
-            label="体重"
+            label="Weight"
             type="number"
             inputMode="decimal"
             value={weight}
@@ -240,7 +240,7 @@ export function ProfileEditPage() {
         </div>
         <div className="form-row form-row--three">
           <TextField
-            label="胸围"
+            label="Chest"
             type="number"
             inputMode="decimal"
             value={chest}
@@ -248,7 +248,7 @@ export function ProfileEditPage() {
             hint="cm"
           />
           <TextField
-            label="腰围"
+            label="Waist"
             type="number"
             inputMode="decimal"
             value={waist}
@@ -256,7 +256,7 @@ export function ProfileEditPage() {
             hint="cm"
           />
           <TextField
-            label="臀围"
+            label="Hips"
             type="number"
             inputMode="decimal"
             value={hip}
@@ -266,7 +266,7 @@ export function ProfileEditPage() {
         </div>
         <div className="form-row">
           <TextField
-            label="内侧裤长"
+            label="Inseam"
             type="number"
             inputMode="decimal"
             value={inseam}
@@ -275,7 +275,7 @@ export function ProfileEditPage() {
             optional
           />
           <TextField
-            label="鞋码"
+            label="Shoe size"
             type="number"
             inputMode="decimal"
             value={shoeSize}
@@ -284,16 +284,16 @@ export function ProfileEditPage() {
           />
         </div>
         <div className="profile-edit-field-block">
-          <span className="o-field__label">版型偏好</span>
+          <span className="o-field__label">Fit preference</span>
           <Segmented
             options={FIT_OPTIONS}
             value={fit}
             onChange={setFit}
-            ariaLabel="版型偏好"
+            ariaLabel="Fit preference"
           />
         </div>
         <div className="profile-edit-field-block">
-          <span className="o-field__label">身型</span>
+          <span className="o-field__label">Body shape</span>
           <div className="chip-wrap">
             {BODY_SHAPES.map((shape) => (
               <Chip
@@ -307,7 +307,7 @@ export function ProfileEditPage() {
           </div>
         </div>
         <div className="profile-edit-field-block">
-          <span className="o-field__label">肤色倾向</span>
+          <span className="o-field__label">Skin tone</span>
           <div className="chip-wrap">
             {SKIN_TONES.map((tone) => (
               <Chip
@@ -325,10 +325,10 @@ export function ProfileEditPage() {
       <section className="profile-edit-section">
         <div className="profile-edit-section__head">
           <span className="o-eyebrow">TASTE</span>
-          <h2>风格与避雷色</h2>
+          <h2>Style & colors to avoid</h2>
         </div>
         <div className="profile-edit-field-block">
-          <span className="o-field__label">风格偏好（至少两种）</span>
+          <span className="o-field__label">Style preferences (at least two)</span>
           <div className="chip-wrap">
             {STYLE_OPTIONS.map((style) => (
               <Chip
@@ -350,11 +350,11 @@ export function ProfileEditPage() {
           </div>
         </div>
         <TextField
-          label="不想穿的颜色"
-          placeholder="用逗号分隔，例如：荧光绿，明黄"
+          label="Colors to avoid"
+          placeholder="Comma-separated, e.g. neon green, bright yellow"
           value={avoidColors}
           onChange={(event) => setAvoidColors(event.target.value)}
-          hint="只作为偏好参考，不会硬性排除所有相近颜色"
+          hint="A preference, not a hard filter — similar shades may still appear"
           optional
         />
       </section>
@@ -362,14 +362,14 @@ export function ProfileEditPage() {
       <section className="profile-edit-section">
         <div className="profile-edit-section__head">
           <span className="o-eyebrow">WEATHER</span>
-          <h2>天气位置</h2>
+          <h2>Weather location</h2>
         </div>
         <div className="location-input-row">
-          <span>城市</span>
+          <span>City</span>
           <input
             type="text"
             value={city}
-            placeholder="例如：上海"
+            placeholder="e.g. Shanghai"
             onChange={(event) => {
               setCity(event.target.value)
               setLatitude(null)
@@ -379,22 +379,22 @@ export function ProfileEditPage() {
           {latitude !== null && (
             <span className="location-pill">
               <LocateFixed size={11} />
-              已定位
+              Located
             </span>
           )}
         </div>
         <button type="button" className="text-button" onClick={detectLocation} disabled={locating}>
           <LocateFixed size={14} />
-          {locating ? '正在定位…' : '使用当前位置'}
+          {locating ? 'Locating…' : 'Use current location'}
         </button>
         <p className="profile-edit-hint">
-          城市或定位用于获取明天的 Open-Meteo 天气。造型生成时不会持续追踪位置。
+          Your city or location fetches tomorrow's Open-Meteo weather. Location isn't continuously tracked.
         </p>
       </section>
 
       <div className={cn('profile-edit-footer', photoBusy && 'is-busy')}>
         <Button full size="lg" loading={saving} disabled={photoBusy} onClick={save}>
-          保存档案
+          Save profile
         </Button>
       </div>
     </div>

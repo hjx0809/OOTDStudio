@@ -23,7 +23,6 @@ import { api, ApiError } from '@/lib/api'
 import { trackGeneration } from '@/lib/generation'
 import { queryKeys, useWardrobe, useWeather } from '@/lib/queries'
 import type {
-  BackgroundMode,
   OccasionType,
   Weather,
   WardrobeItem,
@@ -44,27 +43,21 @@ import {
 } from 'oul-ui'
 
 const OCCASION_SUGGESTIONS = [
-  { text: '去公司做季度汇报', type: 'work' as OccasionType },
-  { text: '和朋友吃一顿轻松的晚餐', type: 'dinner' as OccasionType },
-  { text: '周末在城里散步、看展', type: 'date' as OccasionType },
-  { text: '坐高铁去另一个城市出差', type: 'travel' as OccasionType },
+  { text: 'A quarterly review at the office', type: 'work' as OccasionType },
+  { text: 'A relaxed dinner with friends', type: 'dinner' as OccasionType },
+  { text: 'A weekend walk and gallery visit', type: 'date' as OccasionType },
+  { text: 'A train to another city for work', type: 'travel' as OccasionType },
 ]
 
-const BACKGROUND_PROMPTS = [
-  '清晨的清水混凝土庭院，柔和的侧光',
-  '傍晚城市屋顶，背景轻微虚化',
-  '安静的画廊白墙与自然天光',
-  '有绿植和木地板的温暖室内',
-]
-
-const CONDITION_OPTIONS = ['晴朗', '多云', '阴天', '小雨', '大雨', '小雪', '雷阵雨']
+const CONDITION_OPTIONS = ['Clear', 'Partly cloudy', 'Overcast', 'Light rain', 'Heavy rain', 'Light snow', 'Thunderstorm']
 
 function weatherIconFor(condition: string): string {
-  if (condition.includes('雷')) return '⛈️'
-  if (condition.includes('雪')) return '🌨️'
-  if (condition.includes('雨')) return '🌧️'
-  if (condition.includes('阴')) return '☁️'
-  if (condition.includes('云')) return '⛅'
+  const value = condition.toLowerCase()
+  if (value.includes('thunder') || value.includes('storm')) return '⛈️'
+  if (value.includes('snow')) return '🌨️'
+  if (value.includes('rain')) return '🌧️'
+  if (value.includes('overcast')) return '☁️'
+  if (value.includes('cloud')) return '⛅'
   return '☀️'
 }
 
@@ -84,7 +77,7 @@ const EMPTY_MANUAL: ManualWeatherState = {
   apparent: '',
   rain: '0',
   wind: '0',
-  condition: '晴朗',
+  condition: 'Clear',
   city: '',
 }
 
@@ -101,7 +94,7 @@ function ManualWeatherFields({
     <div className="manual-weather">
       <div className="manual-weather__row">
         <label>
-          <span>最低</span>
+          <span>Low</span>
           <span className="manual-weather__input">
             <input
               type="number"
@@ -114,7 +107,7 @@ function ManualWeatherFields({
           </span>
         </label>
         <label>
-          <span>最高</span>
+          <span>High</span>
           <span className="manual-weather__input">
             <input
               type="number"
@@ -127,7 +120,7 @@ function ManualWeatherFields({
           </span>
         </label>
         <label>
-          <span>体感</span>
+          <span>Feels like</span>
           <span className="manual-weather__input">
             <input
               type="number"
@@ -142,7 +135,7 @@ function ManualWeatherFields({
       </div>
       <div className="manual-weather__row manual-weather__row--two">
         <label>
-          <span>天气</span>
+          <span>Condition</span>
           <select
             value={state.condition}
             onChange={(event) => set('condition', event.target.value)}
@@ -155,7 +148,7 @@ function ManualWeatherFields({
           </select>
         </label>
         <label>
-          <span>降水概率</span>
+          <span>Chance of rain</span>
           <span className="manual-weather__input">
             <input
               type="number"
@@ -167,7 +160,7 @@ function ManualWeatherFields({
           </span>
         </label>
         <label>
-          <span>风速</span>
+          <span>Wind</span>
           <span className="manual-weather__input">
             <input
               type="number"
@@ -180,12 +173,12 @@ function ManualWeatherFields({
         </label>
       </div>
       <label className="manual-weather__city">
-        <span>城市</span>
+        <span>City</span>
         <input
           type="text"
           value={state.city}
           onChange={(event) => set('city', event.target.value)}
-          placeholder="例如：上海"
+          placeholder="e.g. Shanghai"
         />
       </label>
     </div>
@@ -202,8 +195,6 @@ export function StylePage() {
   const [occasion, setOccasion] = useState('')
   const [occasionType, setOccasionType] = useState<OccasionType>('everyday')
   const [typeTouched, setTypeTouched] = useState(false)
-  const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>('studio')
-  const [backgroundPrompt, setBackgroundPrompt] = useState('')
   const [manualWeather, setManualWeather] = useState(false)
   const [manual, setManual] = useState<ManualWeatherState>({
     ...EMPTY_MANUAL,
@@ -226,9 +217,9 @@ export function StylePage() {
   const missingBasics = useMemo(() => {
     const categories = new Set(availableItems.map((item) => item.category))
     const missing: string[] = []
-    if (!categories.has('top') && !categories.has('dress')) missing.push('上装或连衣裙')
-    if (!categories.has('bottom') && !categories.has('dress')) missing.push('下装')
-    if (!categories.has('shoes')) missing.push('鞋履')
+    if (!categories.has('top') && !categories.has('dress')) missing.push('a top or dress')
+    if (!categories.has('bottom') && !categories.has('dress')) missing.push('a bottom')
+    if (!categories.has('shoes')) missing.push('shoes')
     return missing
   }, [availableItems])
 
@@ -289,11 +280,11 @@ export function StylePage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.wardrobe })
       queryClient.invalidateQueries({ queryKey: queryKeys.wardrobeSummary })
       toast.toast({
-        title: updated.force_include ? '已加入下次必穿' : '已取消必穿',
+        title: updated.force_include ? 'Added to must-wear' : 'Must-wear removed',
         description: updated.name,
       })
     },
-    onError: () => toast.error('必穿状态没有保存，请重试'),
+    onError: () => toast.error("Must-wear didn't save. Try again."),
   })
 
   const updateOccasionText = (value: string) => {
@@ -306,17 +297,13 @@ export function StylePage() {
   const generate = async () => {
     setError(null)
     if (!occasion.trim()) {
-      setError('先说一说，明天要去哪里、做什么？')
+      setError("Tell us where you're going and what you're doing tomorrow.")
       window.scrollTo({ top: 0, behavior: 'smooth' })
       return
     }
     if (!effectiveWeather) {
       if (!manualWeather) openManualWeather()
-      setError('请先填写明天的天气，或到「我的」设置城市以自动获取。')
-      return
-    }
-    if (backgroundMode === 'custom' && !backgroundPrompt.trim()) {
-      setError('自定义背景需要一句画面描述')
+      setError("Add tomorrow's weather, or set your city in Profile to fetch it automatically.")
       return
     }
     setSubmitting(true)
@@ -325,9 +312,6 @@ export function StylePage() {
         occasion: occasion.trim(),
         occasion_type: occasionType,
         weather: effectiveWeather,
-        background_mode: backgroundMode,
-        background_prompt:
-          backgroundMode === 'custom' ? backgroundPrompt.trim() : null,
         forced_item_ids: forcedItems.map((item) => item.id),
         outfit_count: 3,
       })
@@ -341,7 +325,7 @@ export function StylePage() {
       setError(
         requestError instanceof ApiError
           ? requestError.message
-          : '造型没有生成成功，请稍后再试',
+          : "Your looks didn't generate. Please try again.",
       )
     } finally {
       setSubmitting(false)
@@ -356,18 +340,18 @@ export function StylePage() {
         <Brand />
         <Badge tone="neutral">
           <CalendarDays size={11} />
-          明天
+          Tomorrow
         </Badge>
       </header>
 
       <section className="style-heading">
         <p className="o-eyebrow">THE TOMORROW EDIT · 03 LOOKS</p>
         <h1>
-          明天，
+          Tomorrow,
           <br />
-          <span className="serif">穿什么？</span>
+          <span className="serif">what to wear?</span>
         </h1>
-        <p>描述场景，我们会从你的衣橱里组合三种可能。</p>
+        <p>Describe the occasion and we'll style three possibilities from your wardrobe.</p>
       </section>
 
       {error && (
@@ -380,13 +364,13 @@ export function StylePage() {
         <div className="style-block__head">
           <span className="style-block__index">01</span>
           <div>
-            <h2>明天的场景</h2>
-            <p>一句真实的描述，比一个标签更有用。</p>
+            <h2>Tomorrow's occasion</h2>
+            <p>A real sentence works better than a label.</p>
           </div>
         </div>
         <TextAreaField
-          label="要去哪里，做什么？"
-          placeholder="例如：明天上午去客户公司做提案，下午可能还要一起吃晚饭。想穿得专业，但不要像制服。"
+          label="Where are you going, and what are you doing?"
+          placeholder="e.g. A client pitch tomorrow morning, then dinner with the team. I want to look professional, but not like a uniform."
           value={occasion}
           maxLength={200}
           onChange={(event) => updateOccasionText(event.target.value)}
@@ -439,27 +423,27 @@ export function StylePage() {
         <div className="style-block__head">
           <span className="style-block__index">02</span>
           <div>
-            <h2>明天的天气</h2>
-            <p>温度决定面料，降水决定鞋履。</p>
+            <h2>Tomorrow's weather</h2>
+            <p>Temperature sets the fabric; rain sets the shoes.</p>
           </div>
         </div>
 
         {weatherQuery.isLoading ? (
           <div className="weather-loading">
             <span className="o-spinner o-spinner--sm" />
-            正在查看明天的天气
+            Checking tomorrow's weather
           </div>
         ) : manualWeather ? (
           <div className="manual-weather-wrap">
             <div className="manual-weather-head">
               <span>
                 <MapPin size={13} />
-                手动天气
+                Manual weather
               </span>
               {autoWeather && (
                 <button type="button" className="text-button" onClick={() => setManualWeather(false)}>
                   <RefreshCw size={13} />
-                  改用自动天气
+                  Use auto weather
                 </button>
               )}
             </div>
@@ -477,120 +461,51 @@ export function StylePage() {
                   {Math.round(autoWeather.temp_min)}° – {Math.round(autoWeather.temp_max)}°
                 </strong>
                 <em>
-                  {autoWeather.condition} · 体感 {Math.round(autoWeather.apparent_temp)}°
+                  {autoWeather.condition} · feels like {Math.round(autoWeather.apparent_temp)}°
                 </em>
               </div>
             </div>
             <div className="style-weather-card__side">
               <span>
                 <MapPin size={12} />
-                {autoWeather.city || user.city || '当前位置'}
+                {autoWeather.city || user.city || 'Current location'}
               </span>
-              <span>{autoWeather.precipitation_probability}% 降水</span>
+              <span>{autoWeather.precipitation_probability}% rain</span>
             </div>
             <button type="button" className="style-weather-card__edit" onClick={openManualWeather}>
-              手动调整
+              Adjust manually
             </button>
           </div>
         ) : (
           <div className="weather-fallback">
             <InlineNotice tone="info" icon={<CloudSun size={17} />}>
               {autoUnavailable
-                ? '没有取得自动天气，请手动填写，或到「我的」重新设置城市。'
-                : '还没有设置天气位置。手动填写明天的体感温度，也可以开始。'}
+                ? "We couldn't fetch the weather. Enter it manually, or reset your city in Profile."
+                : "No weather location set yet. You can still start by entering tomorrow's feels-like temperature."}
             </InlineNotice>
             <button type="button" className="text-button" onClick={openManualWeather}>
-              手动填写天气
+              Enter weather manually
             </button>
           </div>
         )}
       </section>
 
       <section className="style-block">
-        <div className="style-block__head">
+        <div className="style-block__head style-block__head--row">
           <span className="style-block__index">03</span>
           <div>
-            <h2>试穿背景</h2>
-            <p>选择纯净影棚，或给造型一个场景。</p>
-          </div>
-        </div>
-        <div className="background-options">
-          <button
-            type="button"
-            className={cn('background-option', backgroundMode === 'studio' && 'is-active')}
-            onClick={() => setBackgroundMode('studio')}
-            aria-pressed={backgroundMode === 'studio'}
-          >
-            <span className="background-option__visual background-option__visual--studio">
-              <span>OUL</span>
-            </span>
-            <span className="background-option__label">
-              <strong>纯净影棚</strong>
-              <em>留白背景，专注造型</em>
-            </span>
-            {backgroundMode === 'studio' && (
-              <span className="background-option__check">
-                <Check size={11} />
-              </span>
-            )}
-          </button>
-          <button
-            type="button"
-            className={cn('background-option', backgroundMode === 'custom' && 'is-active')}
-            onClick={() => setBackgroundMode('custom')}
-            aria-pressed={backgroundMode === 'custom'}
-          >
-            <span className="background-option__visual background-option__visual--custom">
-              <span />
-              <span />
-            </span>
-            <span className="background-option__label">
-              <strong>自定义场景</strong>
-              <em>用一句话描述背景</em>
-            </span>
-            {backgroundMode === 'custom' && (
-              <span className="background-option__check">
-                <Check size={11} />
-              </span>
-            )}
-          </button>
-        </div>
-        {backgroundMode === 'custom' && (
-          <div className="background-prompt">
-            <TextAreaField
-              label="画面描述"
-              placeholder="例如：清晨的清水混凝土庭院，柔和的侧光，背景干净，不遮挡全身。"
-              value={backgroundPrompt}
-              maxLength={500}
-              onChange={(event) => setBackgroundPrompt(event.target.value)}
-            />
-            <div className="chip-wrap">
-              {BACKGROUND_PROMPTS.map((prompt) => (
-                <Chip key={prompt} onClick={() => setBackgroundPrompt(prompt)}>
-                  {prompt}
-                </Chip>
-              ))}
-            </div>
-          </div>
-        )}
-      </section>
-
-      <section className="style-block">
-        <div className="style-block__head style-block__head--row">
-          <span className="style-block__index">04</span>
-          <div>
-            <h2>必穿单品</h2>
-            <p>标为「必穿」的单品会出现在每套造型中。</p>
+            <h2>Must-wear pieces</h2>
+            <p>Pieces marked must-wear appear in every look.</p>
           </div>
           <Link to="/wardrobe" className="text-link">
-            管理
+            Manage
             <ArrowUpRight size={13} />
           </Link>
         </div>
         {forcedItems.length === 0 ? (
           <Link to="/wardrobe" className="forced-empty">
             <Lock size={16} />
-            <span>还没有必穿单品。衣橱里每件单品都可以设为下次必穿。</span>
+            <span>No must-wear pieces yet. Any wardrobe item can be set as must-wear for the next look.</span>
             <ChevronDown size={15} style={{ transform: 'rotate(-90deg)' }} />
           </Link>
         ) : (
@@ -605,7 +520,7 @@ export function StylePage() {
                 <button
                   type="button"
                   className="forced-item__remove"
-                  aria-label={`取消 ${item.name} 必穿`}
+                  aria-label={`Remove ${item.name} from must-wear`}
                   onClick={() => forceMutation.mutate(item)}
                 >
                   <X size={14} />
@@ -617,7 +532,7 @@ export function StylePage() {
         {forcedItems.length > 0 && (
           <div className="forced-list-note">
             <Lock size={12} />
-            若必穿单品与天气或场景冲突，OUL 会保留单品并给出明确提示。
+            If a must-wear piece clashes with the weather or occasion, OUL keeps it in and tells you why.
           </div>
         )}
       </section>
@@ -625,7 +540,7 @@ export function StylePage() {
       <section className="style-profile-strip">
         <div className="style-profile-strip__photo">
           {user.base_photo_thumb_url ? (
-            <img src={user.base_photo_thumb_url} alt="你的基础照片" />
+            <img src={user.base_photo_thumb_url} alt="Your base photo" />
           ) : (
             <span>
               <ImageIcon size={17} />
@@ -633,35 +548,35 @@ export function StylePage() {
           )}
         </div>
         <div>
-          <strong>你的身体档案</strong>
+          <strong>Your body profile</strong>
           <span>
-            {user.height_cm ? `${user.height_cm} cm` : '身高未填'} · {fitLabel(user.fit_preference)}
+            {user.height_cm ? `${user.height_cm} cm` : 'Height not set'} · {fitLabel(user.fit_preference)}
             {user.style_preferences.length
-              ? ` · ${user.style_preferences.slice(0, 2).join('、')}`
+              ? ` · ${user.style_preferences.slice(0, 2).join(', ')}`
               : ''}
           </span>
         </div>
-        <Link to="/me/edit" aria-label="编辑身体档案">
-          编辑
+        <Link to="/me/edit" aria-label="Edit body profile">
+          Edit
         </Link>
       </section>
 
       {missingBasics.length > 0 && (
         <InlineNotice tone="warning" icon={<Sparkles size={16} />}>
-          衣橱里暂时缺少{missingBasics.join('、')}。你仍然可以生成造型，
-          我们会标出缺口，并给出具体的添置建议。
+          Your wardrobe is missing {missingBasics.join(', ')} right now. You can still generate
+          looks — we'll flag the gap and suggest specific pieces to add.
         </InlineNotice>
       )}
 
       <footer className="style-generate-footer">
         <div className="style-generate-footer__meta">
           <div>
-            <span>3 套造型</span>
-            <em>{availableItems.length} 件可用单品</em>
+            <span>3 looks</span>
+            <em>{availableItems.length} available items</em>
           </div>
           <div className="style-generate-footer__tags">
-            <span>{backgroundMode === 'studio' ? '纯净背景' : '自定义背景'}</span>
-            {forcedItems.length > 0 && <span>{forcedItems.length} 件必穿</span>}
+            <span>White background</span>
+            {forcedItems.length > 0 && <span>{forcedItems.length} must-wear</span>}
           </div>
         </div>
         <Button
@@ -672,7 +587,7 @@ export function StylePage() {
           leftIcon={!submitting ? <WandSparkles size={18} /> : undefined}
           onClick={generate}
         >
-          {submitting ? '正在为你挑选…' : '生成 3 套明日造型'}
+          {submitting ? 'Styling your looks…' : 'Generate 3 looks for tomorrow'}
         </Button>
       </footer>
     </div>

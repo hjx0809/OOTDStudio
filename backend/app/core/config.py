@@ -40,8 +40,8 @@ class Settings(BaseSettings):
     ]
 
     gemini_api_key: str | None = None
-    gemini_text_model: str = "gemini-2.5-flash"
-    gemini_image_model: str = "gemini-2.5-flash-image"
+    gemini_text_model: str = "gemini-3.8-flash"
+    gemini_image_model: str = "gemini-3.1-flash-image"
     gemini_timeout_seconds: float = 75.0
     enable_ai_images: bool = True
 

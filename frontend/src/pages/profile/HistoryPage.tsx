@@ -12,16 +12,16 @@ export function HistoryPage() {
 
   return (
     <div className="page history-page">
-      <PageHeader title="造型档案" eyebrow="THE EDIT ARCHIVE" backTo="/" />
+      <PageHeader title="Look archive" eyebrow="THE EDIT ARCHIVE" backTo="/" />
 
       <section className="history-heading">
         <p className="o-eyebrow">EVERY TOMORROW, REMEMBERED</p>
         <h1>
-          你穿过的
+          Every tomorrow
           <br />
-          <span className="serif">每一个明天。</span>
+          <span className="serif">you've worn.</span>
         </h1>
-        <p>造型档案保留当时选择的场景、天气与单品，方便你回看。</p>
+        <p>The archive keeps each occasion, weather, and item list so you can look back.</p>
       </section>
 
       {historyQuery.isLoading ? (
@@ -40,11 +40,11 @@ export function HistoryPage() {
         <EmptyState
           icon={<Sparkles size={21} />}
           eyebrow="NO EDITS YET"
-          title="第一组造型还在等你"
-          description="从明天要去的地方开始，OUL 会替你从衣橱里找出三种可能。"
+          title="Your first look is waiting"
+          description="Start with where you're going tomorrow — OUL will find three possibilities in your wardrobe."
           action={
             <Button onClick={() => navigate('/style')} rightIcon={<ArrowUpRight size={15} />}>
-              开始第一次造型
+              Create your first look
             </Button>
           }
         />
@@ -71,12 +71,12 @@ export function HistoryPage() {
               </span>
               <span className="history-card__body">
                 <span className="history-card__eyebrow">
-                  {OCCASION_META[look.occasion_type]?.label ?? '造型'} ·{' '}
+                  {OCCASION_META[look.occasion_type]?.label ?? 'Look'} ·{' '}
                   {look.status === 'planning'
-                    ? '正在挑选'
+                    ? 'Styling'
                     : look.status === 'failed'
-                      ? '未完成'
-                      : `${look.look_count} 套`}
+                      ? 'Unfinished'
+                      : `${look.look_count} looks`}
                 </span>
                 <strong>{look.occasion}</strong>
                 <span className="history-card__meta">

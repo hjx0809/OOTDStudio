@@ -17,30 +17,30 @@ from app.schemas.wardrobe import CATEGORY_LABELS
 from app.services.weather import season_for_date, temperature_band
 
 ROLE_LABELS = {
-    "top": "上装",
-    "bottom": "下装",
-    "dress": "连衣裙 / 连体",
-    "outerwear": "外套",
-    "shoes": "鞋履",
-    "bag": "包袋",
-    "accessory": "配饰",
+    "top": "Top",
+    "bottom": "Bottom",
+    "dress": "Dress / Jumpsuit",
+    "outerwear": "Outerwear",
+    "shoes": "Shoes",
+    "bag": "Bag",
+    "accessory": "Accessory",
 }
 
 CATEGORY_ORDER = ["outerwear", "dress", "top", "bottom", "shoes", "bag", "accessory"]
 
 OCCASION_LABELS = {
-    "everyday": "日常",
-    "work": "通勤",
-    "interview": "面试",
-    "date": "约会",
-    "dinner": "晚餐",
-    "party": "派对",
-    "formal": "正式场合",
-    "travel": "旅行",
-    "outdoor": "户外",
-    "sport": "运动",
-    "study": "校园",
-    "lounge": "居家",
+    "everyday": "Everyday",
+    "work": "Work",
+    "interview": "Interview",
+    "date": "Date",
+    "dinner": "Dinner",
+    "party": "Party",
+    "formal": "Formal occasion",
+    "travel": "Travel",
+    "outdoor": "Outdoor",
+    "sport": "Sport",
+    "study": "Campus",
+    "lounge": "At home",
 }
 
 
@@ -51,40 +51,105 @@ class OccasionProfile:
     tags: tuple[str, ...]
     outdoor: bool = False
     active: bool = False
-    priority: str = "整体比例与舒适度"
+    priority: str = "overall proportion and comfort"
 
 
 OCCASIONS: dict[str, OccasionProfile] = {
-    "everyday": OccasionProfile("日常", 2.6, ("休闲", "极简", "日常"), priority="轻松但完整"),
-    "work": OccasionProfile("通勤", 3.5, ("通勤", "利落", "极简", "商务"), priority="利落轮廓"),
-    "interview": OccasionProfile("面试", 4.1, ("商务", "利落", "极简", "正式"), priority="可信赖的第一印象"),
-    "date": OccasionProfile("约会", 3.1, ("优雅", "浪漫", "极简", "法式"), priority="松弛的精致感"),
-    "dinner": OccasionProfile("晚餐", 3.6, ("优雅", "精致", "极简", "法式"), priority="晚间光线下的质感"),
-    "party": OccasionProfile("派对", 3.9, ("吸睛", "派对", "优雅", "前卫"), priority="有记忆点的轮廓"),
-    "formal": OccasionProfile("正式典礼", 4.6, ("正式", "优雅", "经典", "商务"), priority="庄重与合身"),
-    "travel": OccasionProfile("旅行", 2.2, ("休闲", "舒适", "机能", "运动"), priority="长时间移动的舒适"),
+    "everyday": OccasionProfile(
+        "Everyday",
+        2.6,
+        ("casual", "minimal", "everyday", "休闲", "极简", "日常"),
+        priority="effortless but complete",
+    ),
+    "work": OccasionProfile(
+        "Work",
+        3.5,
+        ("work", "polished", "minimal", "business", "通勤", "利落", "极简", "商务"),
+        priority="a clean, professional line",
+    ),
+    "interview": OccasionProfile(
+        "Interview",
+        4.1,
+        ("business", "polished", "minimal", "formal", "商务", "利落", "极简", "正式"),
+        priority="a trustworthy first impression",
+    ),
+    "date": OccasionProfile(
+        "Date",
+        3.1,
+        ("elegant", "romantic", "minimal", "french", "优雅", "浪漫", "极简", "法式"),
+        priority="relaxed polish",
+    ),
+    "dinner": OccasionProfile(
+        "Dinner",
+        3.6,
+        ("elegant", "refined", "minimal", "french", "优雅", "精致", "极简", "法式"),
+        priority="texture under evening light",
+    ),
+    "party": OccasionProfile(
+        "Party",
+        3.9,
+        ("statement", "party", "elegant", "edgy", "吸睛", "派对", "优雅", "前卫"),
+        priority="a silhouette with a memorable detail",
+    ),
+    "formal": OccasionProfile(
+        "Formal occasion",
+        4.6,
+        ("formal", "elegant", "classic", "business", "正式", "优雅", "经典", "商务"),
+        priority="gravitas and a precise fit",
+    ),
+    "travel": OccasionProfile(
+        "Travel",
+        2.2,
+        ("casual", "comfortable", "technical", "sport", "休闲", "舒适", "机能", "运动"),
+        priority="comfort over long hours of movement",
+    ),
     "outdoor": OccasionProfile(
-        "户外", 1.8, ("户外", "机能", "运动", "休闲"), outdoor=True, active=True, priority="防护与活动自由"
+        "Outdoor",
+        1.8,
+        ("outdoor", "technical", "sport", "casual", "户外", "机能", "运动", "休闲"),
+        outdoor=True,
+        active=True,
+        priority="protection and freedom of movement",
     ),
     "sport": OccasionProfile(
-        "运动", 1.3, ("运动", "机能", "休闲"), active=True, priority="透气与活动幅度"
+        "Sport",
+        1.3,
+        ("sport", "technical", "casual", "运动", "机能", "休闲"),
+        active=True,
+        priority="breathability and range of motion",
     ),
-    "study": OccasionProfile("校园", 2.2, ("休闲", "极简", "学院"), priority="自在、耐穿"),
-    "lounge": OccasionProfile("居家", 1.2, ("居家", "舒适", "休闲"), priority="柔软与放松"),
+    "study": OccasionProfile(
+        "Campus",
+        2.2,
+        ("casual", "minimal", "preppy", "休闲", "极简", "学院"),
+        priority="ease and durability",
+    ),
+    "lounge": OccasionProfile(
+        "At home",
+        1.2,
+        ("lounge", "comfortable", "casual", "居家", "舒适", "休闲"),
+        priority="softness and relaxation",
+    ),
 }
 
 KEYWORDS: list[tuple[tuple[str, ...], str]] = [
-    (("面试", "面谈", "求职", "复试"), "interview"),
-    (("婚礼", "典礼", "颁奖", "葬礼", "晚宴", "正式", "年会"), "formal"),
-    (("上班", "通勤", "会议", "汇报", "商务", "办公", "见客户"), "work"),
-    (("约会", "date", "咖啡", "看展", "见面"), "date"),
-    (("晚餐", "dinner", "餐厅", "小酒馆", "聚餐"), "dinner"),
-    (("派对", "party", "生日", "酒吧", "livehouse", "音乐节"), "party"),
-    (("徒步", "露营", "爬山", "户外", "郊游", "公园", "海边"), "outdoor"),
-    (("跑步", "健身", "运动", "瑜伽", "球", "骑行"), "sport"),
-    (("出差", "旅行", "旅游", "度假", "飞机", "高铁", "机场"), "travel"),
-    (("上课", "校园", "图书馆", "自习", "学校"), "study"),
-    (("居家", "在家", "宅", "楼下"), "lounge"),
+    (("面试", "面谈", "求职", "复试", "interview"), "interview"),
+    (
+        ("婚礼", "典礼", "颁奖", "葬礼", "晚宴", "正式", "年会", "wedding", "ceremony", "gala", "funeral", "awards"),
+        "formal",
+    ),
+    (
+        ("上班", "通勤", "会议", "汇报", "商务", "办公", "见客户", "office", "commute", "meeting", "presentation", "business", "client"),
+        "work",
+    ),
+    (("约会", "date", "咖啡", "看展", "见面", "coffee", "gallery"), "date"),
+    (("晚餐", "dinner", "餐厅", "小酒馆", "聚餐", "restaurant"), "dinner"),
+    (("派对", "party", "生日", "酒吧", "livehouse", "音乐节", "birthday", "bar", "concert", "festival"), "party"),
+    (("徒步", "露营", "爬山", "户外", "郊游", "公园", "海边", "hike", "hiking", "camping", "outdoor", "park", "beach"), "outdoor"),
+    (("跑步", "健身", "运动", "瑜伽", "球", "骑行", "run", "running", "gym", "workout", "yoga", "cycling", "sport"), "sport"),
+    (("出差", "旅行", "旅游", "度假", "飞机", "高铁", "机场", "travel", "trip", "vacation", "flight", "airport", "train"), "travel"),
+    (("上课", "校园", "图书馆", "自习", "学校", "class", "campus", "library", "study", "school"), "study"),
+    (("居家", "在家", "宅", "楼下", "home", "lounge", "relax"), "lounge"),
 ]
 
 
@@ -100,6 +165,19 @@ NEUTRAL_KEYWORDS = {
     "炭",
     "裸",
     "沙",
+    "black",
+    "white",
+    "grey",
+    "gray",
+    "ivory",
+    "cream",
+    "camel",
+    "navy",
+    "denim",
+    "charcoal",
+    "blush",
+    "sand",
+    "neutral",
 }
 
 
@@ -203,63 +281,74 @@ def _color_story(items: list[WardrobeItem]) -> str:
         return non_neutral[0]
     for item in items:
         if item.category in {"top", "dress"}:
-            return item.color_name or "中性色"
-    return "中性色"
+            return item.color_name or "Neutral"
+    return "Neutral"
 
 
 TITLE_PATTERNS = (
-    ("留白", "序曲", "轮廓"),
-    ("静默", "层次", "切片"),
-    ("城市", "微光", "行走"),
-    ("柔和", "结构", "日常"),
-    ("低声", "线条", "时刻"),
-    ("晨间", "节奏", "提案"),
+    ("Quiet", "Prelude", "Silhouette"),
+    ("Still", "Layers", "Study"),
+    ("City", "Glow", "Walk"),
+    ("Soft", "Structure", "Daily"),
+    ("Low", "Lines", "Moment"),
+    ("Morning", "Rhythm", "Brief"),
 )
 
 
 def _title_for(index: int, items: list[WardrobeItem], occasion: str) -> str:
     color = _color_story(items)
-    color_token = (
-        color.replace("色", "").replace("纯", "").replace("雾", "").strip()[:2] or "中性"
-    )
+    cleaned = color.replace("色", "").replace("纯", "").replace("雾", "").strip()
+    color_token = cleaned.split()[0].capitalize() if cleaned else "Neutral"
     first, second, third = TITLE_PATTERNS[index % len(TITLE_PATTERNS)]
     if index == 0:
-        return f"{color_token}{second}"
+        return f"{color_token} {second}"
     if index == 1:
-        return f"{first}{third}"
-    return f"{second}{color_token}"
+        return f"{first} {third}"
+    return f"{first} {second}"
 
 
 def _fit_note(user: dict[str, Any]) -> str:
     fit = user.get("fit_preference") or "regular"
     height = user.get("height_cm") or 0
-    shape = user.get("body_shape") or ""
+    shape = (user.get("body_shape") or "").lower()
     notes: list[str] = []
     if fit == "tailored":
-        notes.append("用清晰肩线和合身腰线提气")
+        notes.append("sharp shoulders and a fitted waist give the look lift")
     elif fit == "relaxed":
-        notes.append("松弛廓形里留一处收束，避免整体拖沓")
+        notes.append("keep one point of definition inside the relaxed volume so it doesn't swallow you")
     else:
-        notes.append("保留适度余量，动作和比例都更自然")
+        notes.append("leave a little room so movement and proportion both feel natural")
 
     if height and height < 165:
-        notes.append("高腰下装和露出的脚踝把重心向上提")
+        notes.append("a higher waist and a visible ankle shift the balance upward")
     elif height and height >= 180:
-        notes.append("同色系叠穿延展纵向比例")
-    if "梨" in shape:
-        notes.append("上装加一点结构、下装保持直线，平衡肩胯")
-    elif "苹果" in shape or "圆" in shape:
-        notes.append("V 领与纵向敞穿的外套会更轻盈")
-    elif "倒三角" in shape:
-        notes.append("下装保留一点量感，上装线条保持简洁")
-    elif "沙漏" in shape:
-        notes.append("收腰但不紧绷，突出天然腰线")
-    return "；".join(notes) + "。"
+        notes.append("tonal layering stretches the vertical line")
+    if "梨" in shape or "pear" in shape:
+        notes.append("add a little structure on top and keep the bottom straight to balance shoulders and hips")
+    elif "苹果" in shape or "圆" in shape or "apple" in shape or "round" in shape:
+        notes.append("a V neck and a vertically open jacket feel lighter")
+    elif "倒三角" in shape or "inverted triangle" in shape:
+        notes.append("keep a little volume in the bottom and clean lines on top")
+    elif "沙漏" in shape or "hourglass" in shape:
+        notes.append("define the waist without pulling it tight to highlight your natural line")
+    return notes[0][:1].upper() + notes[0][1:] + "".join(
+        "; " + note for note in notes[1:]
+    ) + "."
 
 
 def _weather_phrase(weather: WeatherSnapshot) -> str:
     feel, _, _ = temperature_band(weather.apparent_temp)
-    return f"{weather.condition}，体感约 {weather.apparent_temp:.0f}°C，{feel}"
+    return f"{weather.condition.lower()}, with a feels-like temperature of about {weather.apparent_temp:.0f}°C ({feel.lower()})"
+
+
+def _item_label(item: WardrobeItem) -> str:
+    """Avoid repeating the colour when the item name already contains it."""
+    color = (item.color_name or "").strip()
+    name = item.name.lower()
+    tokens = {color.lower(), color.replace("色", "").lower()}
+    if any(token and token in name for token in tokens):
+        return item.name
+    return f"{color} {item.name}" if color else item.name
 
 
 def _rationale(
@@ -274,17 +363,17 @@ def _rationale(
         (item for item in items if item.category in {"dress", "top"}), items[0] if items else None
     )
     shoes = next((item for item in items if item.category == "shoes"), None)
-    lead = f"明天{_weather_phrase(weather)}。"
+    lead = f"Tomorrow: {_weather_phrase(weather)}. "
     if base and shoes:
-        core = f"以{base.color_name}{base.name}配{shoes.color_name}{shoes.name}，"
+        core = f"Built around the {_item_label(base)} and the {_item_label(shoes)}, "
     elif base:
-        core = f"以{base.color_name}{base.name}为核心，"
+        core = f"Built around the {_item_label(base)}, "
     else:
         core = ""
     occasion_line = (
-        f"把{profile.label}需要的{profile.priority}放在第一位。"
+        f"the priority is {profile.priority} for this {profile.label.lower()} occasion. "
         if index == 0
-        else f"换一种方式回应当天的{profile.priority}。"
+        else f"it answers the same need for {profile.priority} in a different way. "
     )
     return lead + core + occasion_line + _fit_note(user)
 
@@ -299,26 +388,38 @@ def _styling_note(items: list[WardrobeItem], profile: OccasionProfile) -> str:
     accessory = next((item for item in items if item.category == "accessory"), None)
     if dress:
         shoe_line = (
-            f"鞋履保持{shoes.color_name}的干净，"
+            f"keep the {shoes.color_name} shoes clean, "
             if shoes
             else ""
         )
-        return f"{dress.name}的轮廓已经有足够分量，{shoe_line}包袋只做一处小亮点，不再叠加更多配饰。"
+        return (
+            f"The {dress.name} already carries enough presence; {shoe_line}"
+            "let the bag be the only accent and skip extra accessories."
+        )
     if outer and top:
-        return f"{outer.name}敞开穿，让{top.name}的领口形成一条纵向线；袖口露出半厘米更轻。"
+        return (
+            f"Wear the {outer.name} open so the {top.name} neckline creates one long "
+            "vertical line; half a centimetre of cuff showing feels lighter."
+        )
     if top and bottom:
         if bag:
-            return f"把{top.name}前端轻塞进{bottom.name}，让{bag.name}做唯一亮色，其他单品保持克制。"
-        return f"把{top.name}前端轻塞进{bottom.name}，腰线出来但不用勒紧。"
+            return (
+                f"Tuck the front of the {top.name} lightly into the {bottom.name}, make "
+                f"the {bag.name} the only pop of colour, and keep everything else restrained."
+            )
+        return (
+            f"Tuck the front of the {top.name} lightly into the {bottom.name}; the waist "
+            "reads clearly without being pulled tight."
+        )
     if bag and shoes:
-        return f"让{bag.name}做唯一亮色，{shoes.color_name}的鞋履保持克制。"
+        return f"Let the {bag.name} carry the only colour and keep the {shoes.color_name} shoes restrained."
     if bag:
-        return f"让{bag.name}成为造型里唯一的视觉重点。"
+        return f"Make the {bag.name} the single focal point of the look."
     if accessory:
-        return f"用{accessory.name}收住全身的最后一笔，其他部分不要再抢。"
+        return f"Use the {accessory.name} as the final touch and let everything else stay quiet."
     if profile.active:
-        return "优先保证活动幅度，裤脚和袖口不堆叠，鞋带系紧。"
-    return "全身颜色控制在三种以内，用材质差异代替更多装饰。"
+        return "Prioritise freedom of movement: no bunching at the cuffs or hem, and lace the shoes securely."
+    return "Keep the palette to three colours or fewer and use texture, not extra decoration, for interest."
 
 
 def _weather_warnings(weather: WeatherSnapshot, profile: OccasionProfile) -> list[dict[str, Any]]:
@@ -327,7 +428,7 @@ def _weather_warnings(weather: WeatherSnapshot, profile: OccasionProfile) -> lis
         warnings.append(
             {
                 "code": "severe_cold",
-                "message": f"体感只有 {weather.apparent_temp:.0f}°C，优先保暖：加一层贴身打底并选择覆盖脚踝的鞋履。",
+                "message": f"It feels like only {weather.apparent_temp:.0f}°C. Prioritise warmth: add a thermal base layer and choose shoes that cover the ankle.",
                 "severity": "warning",
             }
         )
@@ -335,7 +436,7 @@ def _weather_warnings(weather: WeatherSnapshot, profile: OccasionProfile) -> lis
         warnings.append(
             {
                 "code": "severe_heat",
-                "message": f"体感约 {weather.apparent_temp:.0f}°C，避开厚重面料，优先透气、浅色与宽松廓形。",
+                "message": f"It feels like about {weather.apparent_temp:.0f}°C. Skip heavy fabrics and favour breathable, light-coloured, relaxed silhouettes.",
                 "severity": "warning",
             }
         )
@@ -343,7 +444,7 @@ def _weather_warnings(weather: WeatherSnapshot, profile: OccasionProfile) -> lis
         warnings.append(
             {
                 "code": "rain",
-                "message": f"降水概率 {weather.precipitation_probability}%，避开麂皮与帆布鞋，随身带一把轻量伞。",
+                "message": f"{weather.precipitation_probability}% chance of precipitation. Avoid suede and canvas shoes, and carry a lightweight umbrella.",
                 "severity": "warning" if weather.precipitation_probability >= 75 else "info",
             }
         )
@@ -351,7 +452,7 @@ def _weather_warnings(weather: WeatherSnapshot, profile: OccasionProfile) -> lis
         warnings.append(
             {
                 "code": "wind",
-                "message": f"阵风最高约 {weather.wind_speed:.0f} km/h，裙装或宽檐帽需要备用方案，外套选有领型或可收口的款式。",
+                "message": f"Gusts up to about {weather.wind_speed:.0f} km/h. Have a backup for skirts or wide-brim hats, and choose a coat with a collar that can be closed.",
                 "severity": "info",
             }
         )
@@ -364,7 +465,7 @@ def _weather_warnings(weather: WeatherSnapshot, profile: OccasionProfile) -> lis
         warnings.append(
             {
                 "code": "unsuitable_outdoor_scenario",
-                "message": "这个户外场景与明天天气并不合适，建议准备室内备选或调整时间；下方造型仍按可防护的方式准备。",
+                "message": "This outdoor plan doesn't suit tomorrow's weather. Prepare an indoor alternative or adjust the timing; the looks below are still built for protection.",
                 "severity": "critical",
             }
         )
@@ -372,7 +473,7 @@ def _weather_warnings(weather: WeatherSnapshot, profile: OccasionProfile) -> lis
         warnings.append(
             {
                 "code": "formal_heat",
-                "message": "正式着装遇上高温，优先无里衬西装、真丝或高支棉衬衫，并减少配饰厚度。",
+                "message": "Formalwear in high heat: favour unlined tailoring, silk or high-twist cotton shirts, and keep accessories light.",
                 "severity": "info",
             }
         )
@@ -411,60 +512,60 @@ def _shopping_gaps(
     if "top" in missing_categories and "top" not in categories and "dress" not in categories:
         add(
             "top",
-            "一件剪裁干净的基础上装",
-            f"「{profile.label}」需要一件可以直接作为造型起点的上装，"
-            "白色、奶油或炭灰最容易与现有单品组合。",
+            "A cleanly tailored basic top",
+            f"A {profile.label.lower()} occasion needs a top that can anchor a look; "
+            "white, cream or charcoal combine most easily with what you own.",
             "high",
-            "基础款 剪裁 衬衫 上装 中性色",
+            "basic tailored shirt top neutral",
         )
     if "bottom" in missing_categories and "bottom" not in categories and "dress" not in categories:
         add(
             "bottom",
-            "一条垂坠感直筒长裤",
-            "直筒裤能补齐下半身线条，也最容易和现有上装、鞋履连成完整造型。",
+            "Straight-leg trousers with drape",
+            "Straight-leg trousers complete the lower half and connect easily with your existing tops and shoes.",
             "high",
-            "垂坠感 高腰 直筒 长裤 通勤",
+            "drape high-waist straight-leg trousers work",
         )
     if "dress" in missing_categories and "dress" not in categories:
         add(
             "dress",
-            "一条剪裁简洁的连衣裙",
-            f"「{profile.label}」需要一件一件式单品，减少搭配负担。",
+            "A simple tailored dress",
+            f"A {profile.label.lower()} occasion benefits from a one-piece option that reduces styling effort.",
             "medium",
-            "剪裁 简洁 连衣裙 正式",
+            "minimal tailored dress formal",
         )
     if "shoes" in missing_categories or "shoes" not in categories:
         add(
             "shoes",
-            "一双可全天行走的皮质乐福鞋",
-            "鞋履是完整造型的支点；中性色皮革能覆盖通勤与周末。",
+            "Leather loafers you can walk in all day",
+            "Shoes are the foundation of a complete look; neutral leather works for both workdays and weekends.",
             "high",
-            "中性色 真皮 乐福鞋 通勤",
+            "neutral leather loafers work",
         )
     if profile.formality >= 4 and not any(
         item.formality >= 4 for item in available
     ):
         add(
             "outerwear",
-            "深色无里衬西装外套",
-            f"「{profile.label}」需要更清晰的正式度，这件能立刻拉齐上半身结构。",
+            "Dark unlined blazer",
+            f"A {profile.label.lower()} occasion calls for clearer formality; this instantly sharpens the upper body.",
             "high",
-            "深色 无里衬 西装外套 面试",
+            "dark unlined blazer formal",
         )
         add(
             "bottom",
-            "垂坠感直筒西裤",
-            "和现有上装组合即可达到正式场合需要的一条干净纵向线。",
+            "Drapey straight-leg suit trousers",
+            "Paired with your existing tops, these create the clean vertical line a formal occasion needs.",
             "medium",
-            "高腰 垂坠 直筒 西裤",
+            "high-waist drape straight-leg trousers",
         )
     if _needs_outerwear(weather) and "outerwear" not in categories:
         add(
             "outerwear",
-            "轻薄防风层次外套",
-            f"体感 {weather.apparent_temp:.0f}°C，加一层可收口的薄外套能覆盖早晚温差。",
+            "Lightweight windproof layer",
+            f"Feels like {weather.apparent_temp:.0f}°C, so a thin coat that can be closed covers the morning-to-evening swing.",
             "high",
-            "轻薄 防风 层次 外套",
+            "lightweight windproof layer jacket",
         )
     available_shoes = [item for item in available if item.category == "shoes"]
     if (
@@ -474,46 +575,48 @@ def _shopping_gaps(
     ):
         add(
             "shoes",
-            "一双正式场合的皮鞋或细带高跟鞋",
-            f"现有鞋履的正式度不足以支撑「{profile.label}」，换一双线条干净的皮鞋就能立刻拉齐。",
+            "Leather shoes or strappy heels for formal occasions",
+            f"Your current shoes aren't formal enough for a {profile.label.lower()} occasion; a clean pair of leather shoes closes the gap instantly.",
             "high",
-            "正式 皮鞋 细带高跟鞋 典礼",
+            "formal leather shoes strappy heels",
         )
     if _needs_rain_shoes(weather):
         add(
             "shoes",
-            "防水短靴或橡胶底乐福鞋",
-            f"降水概率 {weather.precipitation_probability}%，防水鞋底比换整套衣服更有效。",
+            "Waterproof boots or rubber-soled loafers",
+            f"{weather.precipitation_probability}% chance of precipitation; a waterproof sole is more effective than changing the whole outfit.",
             "medium",
-            "防水 短靴 橡胶底 通勤",
+            "waterproof boots rubber sole",
         )
     if weather.apparent_temp >= 30 and not any(
         item.warmth <= 2 for item in available
     ):
         add(
             "top",
-            "亚麻或高支棉宽松衬衫",
-            "高温天需要一件真正透气的上装，和现有下装都能直接组合。",
+            "Loose linen or high-twist cotton shirt",
+            "Hot days need a genuinely breathable top that works with your existing bottoms.",
             "high",
-            "亚麻 高支棉 宽松 衬衫",
+            "linen high-twist cotton loose shirt",
         )
     if weather.apparent_temp <= 5 and not any(item.warmth >= 4 for item in available):
         add(
             "outerwear",
-            "羊毛混纺长大衣",
-            "现有衣橱缺少真正抵御低温的外层，长大衣能同时保证温度和线条。",
+            "Wool-blend long coat",
+            "Your wardrobe lacks a layer that truly handles the cold; a long coat protects both warmth and line.",
             "high",
-            "羊毛混纺 长大衣 冬季",
+            "wool blend long coat winter",
         )
     if profile.active and not any(
-        {"运动", "机能", "户外"} & set(item.style_tags or []) for item in available
+        {"sport", "technical", "outdoor", "运动", "机能", "户外"}
+        & set(item.style_tags or [])
+        for item in available
     ):
         add(
             "shoes",
-            "有抓地力的轻量运动鞋",
-            "活动场景优先考虑鞋底支撑和防滑，不能只看外观。",
+            "Lightweight trainers with good grip",
+            "For active plans, prioritise sole support and slip resistance over looks.",
             "medium",
-            "轻量 防滑 运动鞋 户外",
+            "lightweight non-slip trainers outdoor",
         )
     return suggestions[:4]
 
@@ -616,7 +719,7 @@ def _build_candidate(
     for item in selected:
         if abs(item.formality - profile.formality) >= 1.6:
             warnings.append(
-                f"{item.name}的正式度与「{profile.label}」有一点距离，靠配色和配饰收束。"
+                f"{item.name} sits a little away from the formality of a {profile.label.lower()} occasion; colour and accessories will pull it together."
             )
     return selected, score, warnings
 
@@ -638,7 +741,7 @@ def _validate_forced(
             warnings.append(
                 {
                     "code": "forced_unavailable",
-                    "message": f"「{item.name}」已标记为不可用，本次没有强制加入。恢复可用后再试即可。",
+                    "message": f"{item.name} is marked unavailable, so it was not forced into this look. Make it available and try again.",
                     "severity": "warning",
                 }
             )
@@ -648,7 +751,7 @@ def _validate_forced(
             warnings.append(
                 {
                     "code": "forced_formality_conflict",
-                    "message": f"你指定必穿的「{item.name}」与「{profile.label}」正式度不太一致，造型会用配色和层次尽量中和。",
+                    "message": f"The always-wear {item.name} and a {profile.label.lower()} occasion are not quite aligned on formality; the styling uses colour and layering to bridge the gap.",
                     "severity": "warning",
                 }
             )
@@ -656,7 +759,7 @@ def _validate_forced(
             warnings.append(
                 {
                     "code": "forced_heat_conflict",
-                    "message": f"「{item.name}」偏厚，明天体感约 {weather.apparent_temp:.0f}°C，建议只作短时外层或换一件轻薄款。",
+                    "message": f"{item.name} is on the heavy side for a feels-like {weather.apparent_temp:.0f}°C day; wear it only briefly as an outer layer or switch to something lighter.",
                     "severity": "warning",
                 }
             )
@@ -664,7 +767,7 @@ def _validate_forced(
             warnings.append(
                 {
                     "code": "forced_cold_conflict",
-                    "message": f"「{item.name}」较薄，低温下需要叠穿打底，否则体感会冷。",
+                    "message": f"{item.name} is light for these temperatures; layer a base underneath or you may feel cold.",
                     "severity": "warning",
                 }
             )
@@ -707,7 +810,7 @@ def plan_outfits(
         warnings.append(
             {
                 "code": "forced_layering_conflict",
-                "message": "你同时指定了连衣裙与上下装必穿。它们很难作为一套完整造型同时成立，本次优先采用连衣裙方案。",
+                "message": "You marked both a dress and a top/bottom as always-wear. They rarely work as one complete look, so the dress option takes priority here.",
                 "severity": "warning",
             }
         )
@@ -815,14 +918,14 @@ def plan_outfits(
         warnings.append(
             {
                 "code": "empty_wardrobe",
-                "message": "衣橱里还没有可用的完整搭配。先添加一件上装、下装和鞋履，我们就能开始造型。",
+                "message": "There isn't a complete combination in your wardrobe yet. Add a top, a bottom and shoes and we can start styling.",
                 "severity": "critical",
             }
         )
         shopping = _shopping_gaps(items, weather, profile, ["top", "bottom", "shoes"])
         return PlanResult(
             outfits=[],
-            scenario_note=f"把「{occasion}」理解为{profile.label}场合；先补齐衣橱的基础骨架。",
+            scenario_note=f"Understood “{occasion}” as a {profile.label.lower()} occasion; let's fill the basic gaps in your wardrobe first.",
             warnings=warnings,
             shopping_suggestions=shopping,
             status="wardrobe_gap",
@@ -889,7 +992,7 @@ def plan_outfits(
             plan_warnings.append(
                 {
                     "code": "missing_category",
-                    "message": f"这套造型还缺{CATEGORY_LABELS.get(missing_category, missing_category)}，补上后完整度会更高。",
+                    "message": f"This look still needs {CATEGORY_LABELS.get(missing_category, missing_category).lower()}; adding it will make the outfit more complete.",
                     "severity": "warning",
                 }
             )
@@ -909,10 +1012,20 @@ def plan_outfits(
     all_missing = sorted({category for outfit in outfits for category in outfit.missing_categories})
     shopping = _shopping_gaps(items, weather, profile, all_missing)
     if len(outfits) < outfit_count:
+        if len(outfits) == 1:
+            limited_message = (
+                "Your available pieces only form one clearly different complete look. "
+                "A few basic additions will open up more options."
+            )
+        else:
+            limited_message = (
+                f"Your available pieces only form {len(outfits)} clearly different complete looks. "
+                "A few basic additions will open up more options."
+            )
         warnings.append(
             {
                 "code": "limited_wardrobe",
-                "message": f"现有可用单品只能组合出 {len(outfits)} 套明显不同的完整造型。适当添置基础款，选择会更丰富。",
+                "message": limited_message,
                 "severity": "info",
             }
         )
@@ -920,7 +1033,7 @@ def plan_outfits(
         warnings.append(
             {
                 "code": "forced_not_found",
-                "message": "必穿清单里没有可用的单品，本次按衣橱全部可用单品推荐。",
+                "message": "None of the always-wear items are available, so this selection uses everything available in your wardrobe.",
                 "severity": "info",
             }
         )
@@ -934,8 +1047,8 @@ def plan_outfits(
         warnings.append(
             {
                 "code": "no_complete_outfit",
-                "message": "现有可用单品还组合不出一套可以直接出门的完整造型。"
-                "先按下面的建议补齐关键单品，再生成一次。",
+                "message": "Your available pieces can't yet form a complete look you could walk out the door in. "
+                "Add the key pieces suggested below, then generate again.",
                 "severity": "critical",
             }
         )
@@ -947,8 +1060,9 @@ def plan_outfits(
         status = "ready"
 
     scenario_note = (
-        f"把「{occasion}」理解为{profile.label}场合，明天{_weather_phrase(weather)}。"
-        f"造型优先{profile.priority}，只从你衣橱中可用的单品出发。"
+        f"Understood “{occasion}” as a {profile.label.lower()} occasion. "
+        f"Tomorrow: {_weather_phrase(weather)}. "
+        f"The styling prioritises {profile.priority} and draws only on items available in your wardrobe."
     )
     return PlanResult(
         outfits=outfits,

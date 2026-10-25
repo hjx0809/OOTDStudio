@@ -84,7 +84,7 @@ class WardrobeItem(Base):
     name: Mapped[str] = mapped_column(String(120))
     category: Mapped[str] = mapped_column(String(30), index=True)
     subcategory: Mapped[str | None] = mapped_column(String(80))
-    color_name: Mapped[str] = mapped_column(String(60), default="中性色")
+    color_name: Mapped[str] = mapped_column(String(60), default="Neutral")
     color_hex: Mapped[str | None] = mapped_column(String(9))
     pattern: Mapped[str | None] = mapped_column(String(50))
     material: Mapped[str | None] = mapped_column(String(80))
@@ -118,8 +118,6 @@ class Recommendation(Base):
     occasion: Mapped[str] = mapped_column(String(200))
     occasion_type: Mapped[str] = mapped_column(String(40), default="everyday")
     weather: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
-    background_mode: Mapped[str] = mapped_column(String(30), default="studio")
-    background_prompt: Mapped[str | None] = mapped_column(String(500))
     forced_item_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
     status: Mapped[str] = mapped_column(String(30), default="ready")
     ai_source: Mapped[str] = mapped_column(String(30), default="atelier")
@@ -161,8 +159,6 @@ class Outfit(Base):
     image_status: Mapped[str] = mapped_column(String(30), default="pending")
     image_kind: Mapped[str | None] = mapped_column(String(30))
     image_error: Mapped[str | None] = mapped_column(String(500))
-    background_mode: Mapped[str] = mapped_column(String(30), default="studio")
-    background_prompt: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow

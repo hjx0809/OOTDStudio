@@ -26,16 +26,16 @@ import type { FitPreference, User } from '@/lib/types'
 import { Button, Chip, InlineNotice, Segmented } from 'oul-ui'
 
 const STEPS = [
-  { index: '01', label: '身体基础' },
-  { index: '02', label: '比例细节' },
-  { index: '03', label: '风格偏好' },
-  { index: '04', label: '照片与天气' },
+  { index: '01', label: 'Body' },
+  { index: '02', label: 'Proportions' },
+  { index: '03', label: 'Style' },
+  { index: '04', label: 'Photo & weather' },
 ] as const
 
 const FIT_OPTIONS: Array<{ value: FitPreference; label: string; sublabel: string }> = [
-  { value: 'tailored', label: '利落合身', sublabel: '贴合身体线条' },
-  { value: 'regular', label: '自然合身', sublabel: '留一点余量' },
-  { value: 'relaxed', label: '松弛廓形', sublabel: '宽松、留白' },
+  { value: 'tailored', label: 'Tailored', sublabel: 'Close to the line' },
+  { value: 'regular', label: 'Regular', sublabel: 'A little room' },
+  { value: 'relaxed', label: 'Relaxed', sublabel: 'Easy, roomy volume' },
 ]
 
 function asText(value: number | null | undefined): string {
@@ -98,31 +98,31 @@ export function OnboardingPage() {
       const heightNumber = parseNumber(height)
       const weightNumber = parseNumber(weight)
       if (!heightNumber || heightNumber < 120 || heightNumber > 230) {
-        errors.height = '请输入 120–230 cm 之间的身高'
+        errors.height = 'Enter a height between 120–230 cm'
       }
       if (!weightNumber || weightNumber < 30 || weightNumber > 300) {
-        errors.weight = '请输入 30–300 kg 之间的体重'
+        errors.weight = 'Enter a weight between 30–300 kg'
       }
-      if (!parseNumber(shoeSize)) errors.shoe = '请输入你的鞋码'
+      if (!parseNumber(shoeSize)) errors.shoe = 'Enter your shoe size'
     }
     if (step === 1) {
       for (const [key, value, label] of [
-        ['chest', chest, '胸围'],
-        ['waist', waist, '腰围'],
-        ['hip', hip, '臀围'],
+        ['chest', chest, 'chest'],
+        ['waist', waist, 'waist'],
+        ['hip', hip, 'hip'],
       ] as const) {
         const parsed = parseNumber(value)
         if (!parsed || parsed < 40 || parsed > 220) {
-          errors[key] = `请输入有效的${label}尺寸`
+          errors[key] = `Enter a valid ${label} measurement`
         }
       }
     }
     if (step === 2 && styles.length < 2) {
-      errors.styles = '至少选择两种你常穿或喜欢的风格'
+      errors.styles = 'Pick at least two styles you wear or love'
     }
     if (step === 3) {
-      if (!photoPreview) errors.photo = '请上传一张全身基础照片'
-      if (!hasLocation && !city.trim()) errors.city = '请填写城市，或使用当前位置'
+      if (!photoPreview) errors.photo = 'Upload a full-length base photo'
+      if (!hasLocation && !city.trim()) errors.city = 'Enter a city or use your current location'
     }
     setFieldErrors(errors)
     return Object.keys(errors).length === 0
@@ -165,7 +165,7 @@ export function OnboardingPage() {
       setError(
         requestError instanceof ApiError
           ? requestError.message
-          : '这一步没有保存成功，请重试',
+          : "Couldn't save this step. Try again.",
       )
     } finally {
       setBusy(false)
@@ -174,7 +174,7 @@ export function OnboardingPage() {
 
   const detectLocation = () => {
     if (!navigator.geolocation) {
-      setLocationNote('当前浏览器不支持定位，请手动填写城市。')
+      setLocationNote("Your browser can't detect location. Enter a city manually.")
       return
     }
     setLocating(true)
@@ -183,12 +183,14 @@ export function OnboardingPage() {
       (position) => {
         setLatitude(position.coords.latitude)
         setLongitude(position.coords.longitude)
-        setLocationNote('已记录你的位置，用于查看明天的天气。')
+        setLocationNote("Location saved for tomorrow's weather.")
         setLocating(false)
         setFieldErrors((current) => ({ ...current, city: '' }))
       },
       () => {
-        setLocationNote('没有取得定位权限，请手动填写城市，或在浏览器设置中允许定位。')
+        setLocationNote(
+          'Location access was denied. Enter a city manually, or allow location in browser settings.',
+        )
         setLocating(false)
       },
       { enableHighAccuracy: false, timeout: 10_000, maximumAge: 600_000 },
@@ -225,13 +227,13 @@ export function OnboardingPage() {
       })
       const completed = await api.users.completeOnboarding()
       updateUser(completed)
-      toast.success('你的私享衣橱准备好了', '先添加几件常穿的单品，OUL 就能开始造型。')
+      toast.success('Your private wardrobe is ready', 'Add a few favorite items and OUL can start styling.')
       navigate('/', { replace: true })
     } catch (requestError) {
       setError(
         requestError instanceof ApiError
           ? requestError.message
-          : '建档没有完成，请稍后重试',
+          : "Couldn't finish your profile. Try again in a moment.",
       )
     } finally {
       setBusy(false)
@@ -250,7 +252,7 @@ export function OnboardingPage() {
             navigate('/welcome', { replace: true })
           }}
         >
-          退出
+          Log out
         </button>
       </header>
 
@@ -292,11 +294,11 @@ export function OnboardingPage() {
             <div className="onboarding__heading">
               <p className="o-eyebrow">BODY, IN YOUR OWN WORDS</p>
               <h1>
-                先告诉我们
+                First, the real numbers.
                 <br />
-                <span className="serif">身体的真实尺度。</span>
+                <span className="serif">Your body, as it is.</span>
               </h1>
-              <p>不是评分，也不做比较。尺寸只用来判断比例、版型与长度。</p>
+              <p>No scores, no comparisons. Measurements only guide proportion, fit, and length.</p>
             </div>
 
             <div className="measurement-grid">
@@ -304,7 +306,7 @@ export function OnboardingPage() {
                 <span className="measurement-card__icon">
                   <Ruler size={18} />
                 </span>
-                <span className="measurement-card__label">身高</span>
+                <span className="measurement-card__label">Height</span>
                 <span className="measurement-card__value">
                   <input
                     type="number"
@@ -322,7 +324,7 @@ export function OnboardingPage() {
                 <span className="measurement-card__icon">
                   <Weight size={18} />
                 </span>
-                <span className="measurement-card__label">体重</span>
+                <span className="measurement-card__label">Weight</span>
                 <span className="measurement-card__value">
                   <input
                     type="number"
@@ -340,7 +342,7 @@ export function OnboardingPage() {
                 <span className="measurement-card__icon">
                   <Footprints size={18} />
                 </span>
-                <span className="measurement-card__label">鞋码（EU）</span>
+                <span className="measurement-card__label">Shoe size (EU)</span>
                 <span className="measurement-card__value">
                   <input
                     type="number"
@@ -358,14 +360,14 @@ export function OnboardingPage() {
 
             <div className="onboarding__group">
               <div className="onboarding__group-head">
-                <span className="onboarding__group-title">喜欢的廓形</span>
+                <span className="onboarding__group-title">Fit preference</span>
                 <span className="onboarding__group-note">{fitLabel(fitPreference)}</span>
               </div>
               <Segmented
                 options={FIT_OPTIONS}
                 value={fitPreference}
                 onChange={setFitPreference}
-                ariaLabel="版型偏好"
+                ariaLabel="Fit preference"
               />
             </div>
           </section>
@@ -376,18 +378,18 @@ export function OnboardingPage() {
             <div className="onboarding__heading">
               <p className="o-eyebrow">PROPORTION NOTES</p>
               <h1>
-                轮廓比数字
+                Silhouette says more
                 <br />
-                <span className="serif">更能说明你。</span>
+                <span className="serif">than numbers do.</span>
               </h1>
-              <p>这些数据帮助我们处理腰线、肩线和裤长。没有软尺也可以先填大概值。</p>
+              <p>These guide waistline, shoulder line, and trouser length. No tape measure? Rough numbers are fine.</p>
             </div>
 
             <div className="measurement-grid measurement-grid--three">
               {[
-                { key: 'chest', label: '胸围', value: chest, setter: setChest, placeholder: '88' },
-                { key: 'waist', label: '腰围', value: waist, setter: setWaist, placeholder: '72' },
-                { key: 'hip', label: '臀围', value: hip, setter: setHip, placeholder: '94' },
+                { key: 'chest', label: 'Chest', value: chest, setter: setChest, placeholder: '88' },
+                { key: 'waist', label: 'Waist', value: waist, setter: setWaist, placeholder: '72' },
+                { key: 'hip', label: 'Hips', value: hip, setter: setHip, placeholder: '94' },
               ].map((field) => (
                 <label className="measurement-card measurement-card--compact" key={field.key}>
                   <span className="measurement-card__label">{field.label}</span>
@@ -409,12 +411,12 @@ export function OnboardingPage() {
             </div>
 
             <label className="measurement-line">
-              <span>内侧裤长</span>
+              <span>Inseam</span>
               <span className="measurement-line__input">
                 <input
                   type="number"
                   inputMode="decimal"
-                  placeholder="选填，例如 78"
+                  placeholder="Optional, e.g. 78"
                   value={inseam}
                   onChange={(event) => setInseam(event.target.value)}
                 />
@@ -424,8 +426,8 @@ export function OnboardingPage() {
 
             <div className="onboarding__group">
               <div className="onboarding__group-head">
-                <span className="onboarding__group-title">身型（选填）</span>
-                <span className="onboarding__group-note">只用于廓形建议</span>
+                <span className="onboarding__group-title">Body shape (optional)</span>
+                <span className="onboarding__group-note">Shapes silhouette advice</span>
               </div>
               <div className="chip-wrap">
                 {BODY_SHAPES.map((shape) => (
@@ -442,11 +444,11 @@ export function OnboardingPage() {
 
             <div className="onboarding__group">
               <div className="onboarding__group-head">
-                <span className="onboarding__group-title">肤色倾向（选填）</span>
-                <span className="onboarding__group-note">用来建议更衬你的颜色</span>
+                <span className="onboarding__group-title">Skin tone (optional)</span>
+                <span className="onboarding__group-note">For colors that flatter you</span>
               </div>
               <div className="chip-wrap">
-                {['冷白', '自然', '暖黄', '小麦', '深肤色', '不确定'].map((tone) => (
+                {['Cool', 'Natural', 'Warm', 'Tan', 'Deep', 'Not sure'].map((tone) => (
                   <Chip
                     key={tone}
                     selected={skinTone === tone}
@@ -465,11 +467,11 @@ export function OnboardingPage() {
             <div className="onboarding__heading">
               <p className="o-eyebrow">YOUR TASTE, EDITED</p>
               <h1>
-                你喜欢什么，
+                What you love
                 <br />
-                <span className="serif">比流行什么更重要。</span>
+                <span className="serif">matters more than what's trending.</span>
               </h1>
-              <p>选择 2–6 个最接近你的风格。我们会优先用这些语言描述造型。</p>
+              <p>Choose 2–6 styles that feel like you. We'll describe looks in that language first.</p>
             </div>
 
             <div className="style-pick-grid">
@@ -491,7 +493,7 @@ export function OnboardingPage() {
                           return current.filter((value) => value !== style)
                         }
                         if (current.length >= 6) {
-                          toast.toast({ title: '最多选择 6 种风格', description: '聚焦一点，造型会更像你。' })
+                          toast.toast({ title: 'Up to six styles', description: 'A tighter edit feels more like you.' })
                           return current
                         }
                         return [...current, style]
@@ -516,8 +518,8 @@ export function OnboardingPage() {
               <Sparkles size={14} />
               <span>
                 {styleSummary
-                  ? `已选：${styleSummary}${styles.length > 3 ? ` 等 ${styles.length} 种` : ''}`
-                  : '先选两个最常穿的风格'}
+                  ? `Selected: ${styleSummary}${styles.length > 3 ? ` · ${styles.length} styles` : ''}`
+                  : 'Pick two styles you wear most'}
               </span>
             </div>
           </section>
@@ -528,17 +530,17 @@ export function OnboardingPage() {
             <div className="onboarding__heading">
               <p className="o-eyebrow">THE LAST PIECE</p>
               <h1>
-                一张全身照，
+                One full-length photo,
                 <br />
-                <span className="serif">让明天先被看见。</span>
+                <span className="serif">and tomorrow looks like you.</span>
               </h1>
-              <p>照片会作为 AI 试穿的人像基准。只用于你的私人造型。</p>
+              <p>This is the portrait base for AI try-on, used only for your private looks.</p>
             </div>
 
             <ImagePicker
               previewUrl={photoPreview}
-              title="上传你的全身基础照片"
-              subtitle="自然站立，全身入镜，光线均匀，背景尽量干净"
+              title="Upload your full-length base photo"
+              subtitle="Stand naturally, full body in frame, even light, clean background"
               aspect="tall"
               variant="base"
               onSelect={(blob, filename, previewUrl) => {
@@ -555,24 +557,24 @@ export function OnboardingPage() {
             )}
 
             <div className="photo-guidance">
-              <span>全身从头到脚</span>
-              <span>单人、无遮挡</span>
-              <span>自然光或明亮室内</span>
+              <span>Head to toe</span>
+              <span>One person, nothing blocking</span>
+              <span>Daylight or bright indoor light</span>
             </div>
 
             <div className="onboarding__group location-block">
               <div className="onboarding__group-head">
-                <span className="onboarding__group-title">明天的天气从哪里看？</span>
+                <span className="onboarding__group-title">Where's tomorrow's weather from?</span>
                 <button type="button" className="text-button" onClick={detectLocation} disabled={locating}>
                   <LocateFixed size={14} />
-                  {locating ? '定位中…' : '使用当前位置'}
+                  {locating ? 'Locating…' : 'Use current location'}
                 </button>
               </div>
               <label className="location-input-row">
-                <span>城市</span>
+                <span>City</span>
                 <input
                   type="text"
-                  placeholder="例如：上海"
+                  placeholder="e.g. Shanghai"
                   value={city}
                   onChange={(event) => {
                     setCity(event.target.value)
@@ -582,7 +584,7 @@ export function OnboardingPage() {
                 />
                 {hasLocation && (
                   <span className="location-pill">
-                    <LocateFixed size={11} /> 已定位
+                    <LocateFixed size={11} /> Located
                   </span>
                 )}
               </label>
@@ -593,14 +595,14 @@ export function OnboardingPage() {
               )}
               {locationNote && <p className="onboarding__help">{locationNote}</p>}
               <p className="onboarding__help">
-                天气只在生成造型时使用，不会持续跟踪你的位置。
+                Weather is only checked when creating a look. We don't track you continuously.
               </p>
             </div>
 
             <div className="privacy-note">
               <ShieldCheck size={17} />
               <p>
-                照片保存在你的私人空间，访问需要登录凭证。你可以随时在上传页更换。
+                Your photos live in your private space, accessible only with sign-in credentials. You can replace them on the upload page anytime.
               </p>
             </div>
           </section>
@@ -615,7 +617,7 @@ export function OnboardingPage() {
           disabled={step === 0 || busy}
           leftIcon={<ArrowLeft size={17} />}
         >
-          上一步
+          Back
         </Button>
         {step < STEPS.length - 1 ? (
           <Button
@@ -624,11 +626,11 @@ export function OnboardingPage() {
             onClick={handleNext}
             rightIcon={<ArrowRight size={17} />}
           >
-            下一步
+            Next
           </Button>
         ) : (
           <Button size="md" loading={busy} onClick={finish} rightIcon={<Check size={17} />}>
-            完成建档
+            Finish profile
           </Button>
         )}
       </footer>

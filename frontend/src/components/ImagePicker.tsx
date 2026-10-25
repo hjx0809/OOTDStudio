@@ -32,11 +32,11 @@ export function ImagePicker({
   const processFile = async (file: File) => {
     setError(null)
     if (!ACCEPTED.includes(file.type)) {
-      setError('请上传 JPG、PNG、WebP 或 HEIC 照片')
+      setError('Please upload a JPG, PNG, WebP, or HEIC photo')
       return
     }
     if (file.size > MAX_BYTES) {
-      setError(`照片最大 12 MB，当前 ${formatFileSize(file.size)}`)
+      setError(`Photos can be up to 12 MB — this one is ${formatFileSize(file.size)}`)
       return
     }
     setBusy(true)
@@ -44,7 +44,7 @@ export function ImagePicker({
       const result = await compressImage(file, variant === 'base' ? 2000 : 1600, 0.9)
       onSelect(result.blob, result.filename, result.previewUrl)
     } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : '照片处理失败')
+      setError(uploadError instanceof Error ? uploadError.message : "We couldn't process that photo")
     } finally {
       setBusy(false)
     }
@@ -78,7 +78,7 @@ export function ImagePicker({
       >
         {previewUrl ? (
           <>
-            <img src={previewUrl} alt="已选择的照片预览" className="image-picker__preview" />
+            <img src={previewUrl} alt="Preview of the selected photo" className="image-picker__preview" />
             <div className="image-picker__shade" />
             <div className="image-picker__actions">
               <button
@@ -88,13 +88,13 @@ export function ImagePicker({
                 disabled={disabled || busy}
               >
                 <Camera size={14} />
-                更换照片
+                Change photo
               </button>
             </div>
             {variant === 'base' && (
               <div className="image-picker__corner">
                 <span />
-                全身照
+                Full body
               </div>
             )}
           </>
@@ -108,11 +108,11 @@ export function ImagePicker({
             <span className="image-picker__icon">
               {busy ? <span className="o-spinner" /> : <ImagePlus size={24} strokeWidth={1.6} />}
             </span>
-            <span className="image-picker__title">{busy ? '正在优化照片…' : title}</span>
+            <span className="image-picker__title">{busy ? 'Polishing your photo…' : title}</span>
             {subtitle && <span className="image-picker__subtitle">{subtitle}</span>}
             <span className="image-picker__cta">
               <Camera size={13} />
-              拍照或从相册选择
+              Take a photo or choose from library
             </span>
           </button>
         )}

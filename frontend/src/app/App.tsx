@@ -70,10 +70,10 @@ function NotFoundPage() {
     <div className="app-frame not-found">
       <p className="o-eyebrow">404 / OFF THE RAIL</p>
       <h1 className="serif">This page isn’t in the edit.</h1>
-      <p>链接可能已经失效，或者这一页被收进了别的衣柜。</p>
+      <p>This link may have expired — or this page was filed into another wardrobe.</p>
       <div className="not-found__actions">
         <Link to={user ? '/' : '/welcome'}>
-          <Button>{user ? '回到首页' : '回到 OUL'}</Button>
+          <Button>{user ? 'Back to home' : 'Back to OUL'}</Button>
         </Link>
       </div>
     </div>

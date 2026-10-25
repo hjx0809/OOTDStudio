@@ -107,7 +107,7 @@ class GeminiService:
             )
         except Exception as exc:  # SDK surfaces many transport/HTTP exceptions
             logger.warning("Gemini text request failed: %s", type(exc).__name__)
-            raise GeminiError("AI 造型服务暂时不可用") from exc
+            raise GeminiError("The AI styling service is temporarily unavailable") from exc
         return response.text
 
     def plan_outfits(self, prompt: str) -> dict[str, Any]:
@@ -149,7 +149,7 @@ class GeminiService:
             )
         except Exception as exc:
             logger.warning("Gemini garment analysis failed: %s", type(exc).__name__)
-            raise GeminiError("暂时无法识别这件单品") from exc
+            raise GeminiError("We couldn't identify this item right now") from exc
         return self._parse_json(response.text)
 
     def render_outfit(
@@ -161,7 +161,7 @@ class GeminiService:
         prompt: str,
     ) -> tuple[bytes, str]:
         if not self.settings.enable_ai_images:
-            raise GeminiError("AI 试穿图像生成已关闭")
+            raise GeminiError("AI try-on image generation is disabled")
         models_to_try = [self.settings.gemini_image_model]
         if "preview" not in self.settings.gemini_image_model:
             models_to_try.append(f"{self.settings.gemini_image_model}-preview")
@@ -211,7 +211,7 @@ class GeminiService:
                 last_error = GeminiError(f"Image blocked: {block.block_reason}")
                 break
 
-        raise GeminiError("AI 试穿图像生成失败") from last_error
+        raise GeminiError("AI try-on image generation failed") from last_error
 
 
 gemini_service = GeminiService()
@@ -221,5 +221,5 @@ def require_gemini() -> None:
     if not gemini_service.enabled:
         raise HTTPException(
             status_code=503,
-            detail="AI 服务尚未配置，请在 .env 中设置 GEMINI_API_KEY",
+            detail="AI service is not configured. Set GEMINI_API_KEY in .env.",
         )

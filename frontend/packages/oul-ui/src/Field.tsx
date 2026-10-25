@@ -35,7 +35,7 @@ function FieldShell({
           {label && (
             <label className="o-field__label" htmlFor={htmlFor}>
               {label}
-              {optional && <span className="o-field__optional">选填</span>}
+              {optional && <span className="o-field__optional">Optional</span>}
             </label>
           )}
           {action}

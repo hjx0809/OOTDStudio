@@ -8,14 +8,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.db.models import Outfit, Recommendation, User
 from app.db.session import SessionLocal
 from app.services.gemini import gemini_service
-from app.services.local_scene import compose_person, person_cutout, render_scene
+from app.services.lookboard import compose_person, render_background
 from app.services.storage import resolve_media_path, store_user_image
 
 logger = logging.getLogger(__name__)
@@ -50,21 +50,15 @@ def _mime_for(path: Path) -> str:
     return "image/png" if path.suffix.lower() == ".png" else "image/jpeg"
 
 
-def _background_description(outfit: Outfit) -> str:
-    if outfit.background_mode == "custom" and outfit.background_prompt:
-        return (
-            "Use this background scene for the photograph: "
-            f"「{outfit.background_prompt.strip()}」. "
-            "The scene must not obscure the person's full body or the outfit."
-        )
+def _background_description() -> str:
     return (
-        "Use a clean, seamless warm light-grey studio background with no props, "
-        "no horizon line, and no text."
+        "Use a seamless pure white (#FFFFFF) background behind the person: "
+        "no props, no horizon line, no gradient, no vignette, no wall shadow "
+        "and no text."
     )
 
 
 def _build_tryon_prompt(
-    outfit: Outfit,
     recommendation: Recommendation,
     user: User,
     snapshot_items: list[dict[str, Any]],
@@ -95,7 +89,7 @@ The other images are the actual garments to dress this person in. Dress the pers
 Occasion: {recommendation.occasion}.
 Weather: {weather.get('condition', '')}, feels like {weather.get('apparent_temp', '')}°C.
 
-{_background_description(outfit)}
+{_background_description()}
 
 Composition requirements:
 - Full body visible from head to toe, including shoes, with a little breathing room above the head and below the feet.
@@ -130,17 +124,12 @@ def _render_lookboard(
     user: User,
     snapshot_items: list[dict[str, Any]],
 ) -> bytes:
-    """Compose a real preview scene: cut-out person + prompt-aware background.
+    """Compose a preview board: framed base photo on a pure white background.
 
-    The preview does not replace the person's clothes (Gemini does that), but
-    unlike a static placeholder it honours the selected background and visibly
-    changes when the user edits the background prompt.
+    The preview does not replace the person's clothes (Gemini does that); it
+    simply places the base photo on white so nothing distracts from the outfit.
     """
-    scene = render_scene(
-        outfit.background_mode,
-        outfit.background_prompt,
-        (1080, 1440),
-    )
+    scene = render_background((1080, 1440))
 
     person_path: Path | None = None
     if user.base_photo_path:
@@ -149,39 +138,18 @@ def _render_lookboard(
         except Exception:
             person_path = None
 
-    cutout = person_cutout(person_path) if person_path else None
-    fallback_person = None
-    if cutout is None and person_path:
+    person_photo = None
+    if person_path:
         try:
-            fallback_person = _load_person_image(person_path)
+            person_photo = _load_person_image(person_path)
         except Exception:
-            fallback_person = None
-    canvas = compose_person(scene, cutout or fallback_person)
-
-    # Cinematic scrims keep the editorial typography legible on every scene.
-    overlay = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
-    draw = ImageDraw.Draw(overlay)
-    for y in range(300):
-        alpha = int(176 * (1 - y / 300) ** 1.55)
-        draw.line([(0, y), (1080, y)], fill=(12, 12, 10, alpha))
-    for y in range(720):
-        alpha = int(215 * (y / 720) ** 1.2)
-        draw.line([(0, 720 + y), (1080, 720 + y)], fill=(12, 12, 11, alpha))
-    # A soft left-side pool of shade keeps the editorial title legible over
-    # busy city/gallery scenes without flattening the whole photograph.
-    left = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
-    ldraw = ImageDraw.Draw(left)
-    for x in range(600):
-        alpha = int(105 * (1 - x / 600) ** 1.5)
-        ldraw.line([(x, 650), (x, 1060)], fill=(10, 10, 8, alpha))
-    left = left.filter(ImageFilter.GaussianBlur(36))
-    overlay = Image.alpha_composite(overlay, left)
-    canvas = Image.alpha_composite(canvas.convert("RGBA"), overlay)
+            person_photo = None
+    canvas = compose_person(scene, person_photo)
     draw = ImageDraw.Draw(canvas)
 
-    ink = (248, 245, 238)
-    muted = (208, 201, 188)
-    accent = (216, 255, 79)
+    ink = (24, 24, 21)
+    muted = (118, 112, 101)
+    accent = (86, 108, 30)
     manrope_med = _font("Manrope-Variable.ttf", 22, 620)
     manrope_small = _font("Manrope-Variable.ttf", 17, 540)
     serif = _font("InstrumentSerif-Regular.ttf", 76)
@@ -196,8 +164,8 @@ def _render_lookboard(
     draw.rounded_rectangle(
         (1080 - 72 - badge_width - 36, 58, 1008, 104),
         radius=23,
-        fill=(18, 18, 16, 150),
-        outline=(255, 255, 255, 110),
+        fill=(255, 255, 255, 235),
+        outline=(24, 24, 21, 70),
     )
     draw.text((1080 - 72 - badge_width - 18, 69), badge_text, font=manrope_med, fill=ink)
 
@@ -215,7 +183,7 @@ def _render_lookboard(
         font=manrope_small,
         fill=muted,
     )
-    draw.line((72, subtitle_y + 32, 1008, subtitle_y + 32), fill=(255, 255, 255, 82), width=1)
+    draw.line((72, subtitle_y + 32, 1008, subtitle_y + 32), fill=(24, 24, 21, 45), width=1)
 
     # Garment cards strip.
     top = 1084
@@ -255,8 +223,8 @@ def _render_lookboard(
         draw.rounded_rectangle(
             (x, top, x + card_width, top + card_height),
             radius=22,
-            fill=(255, 255, 255, 28),
-            outline=(255, 255, 255, 70),
+            fill=(245, 245, 243),
+            outline=(24, 24, 21, 40),
         )
         draw.text(
             (x + 24, top + card_height // 2 - 30),
@@ -304,13 +272,13 @@ def _render_outfit_sync(outfit_id: str) -> None:
         recommendation = db.get(Recommendation, outfit.recommendation_id)
         if recommendation is None:
             outfit.image_status = "failed"
-            outfit.image_error = "推荐记录不存在"
+            outfit.image_error = "Recommendation not found"
             db.commit()
             return
         user = db.get(User, recommendation.user_id)
         if user is None:
             outfit.image_status = "failed"
-            outfit.image_error = "账户不存在"
+            outfit.image_error = "Account not found"
             db.commit()
             return
 
@@ -320,7 +288,7 @@ def _render_outfit_sync(outfit_id: str) -> None:
         if not categories & base_required or "shoes" not in categories:
             outfit.image_status = "unavailable"
             outfit.image_kind = None
-            outfit.image_error = "补齐上装、下装与鞋履后即可生成完整试穿图"
+            outfit.image_error = "Add a top, bottom and shoes to generate a complete try-on image"
             outfit.updated_at = datetime.now(timezone.utc)
             db.commit()
             return
@@ -328,7 +296,7 @@ def _render_outfit_sync(outfit_id: str) -> None:
         if not user.base_photo_path:
             outfit.image_status = "unavailable"
             outfit.image_kind = None
-            outfit.image_error = "请先上传一张全身基础照片"
+            outfit.image_error = "Please upload a full-body base photo first"
             db.commit()
             return
 
@@ -344,7 +312,7 @@ def _render_outfit_sync(outfit_id: str) -> None:
             try:
                 base_path = resolve_media_path(user.base_photo_path, user.id)
                 garment_images = _load_snapshot_images(user, snapshot_items)
-                prompt = _build_tryon_prompt(outfit, recommendation, user, snapshot_items)
+                prompt = _build_tryon_prompt(recommendation, user, snapshot_items)
                 image_bytes, _mime = gemini_service.render_outfit(
                     person_image=base_path.read_bytes(),
                     person_mime=_mime_for(base_path),
@@ -354,12 +322,12 @@ def _render_outfit_sync(outfit_id: str) -> None:
                 image_kind = "ai_tryon"
             except Exception as exc:
                 logger.warning("Try-on render fell back to lookboard: %s", type(exc).__name__)
-                note = "当前展示的是造型预览板。"
+                note = "A lookboard preview is shown instead."
 
         if image_bytes is None:
             image_bytes = _render_lookboard(outfit, recommendation, user, snapshot_items)
             if gemini_service.enabled:
-                note = note or "当前展示的是造型预览板。"
+                note = note or "A lookboard preview is shown instead."
 
         stored = store_user_image(
             user.id,
@@ -383,7 +351,7 @@ def _render_outfit_sync(outfit_id: str) -> None:
             outfit = db.get(Outfit, outfit_id)
             if outfit is not None:
                 outfit.image_status = "failed"
-                outfit.image_error = "图片生成失败，请稍后重试"
+                outfit.image_error = "Image generation failed. Please try again shortly."
                 db.commit()
         except Exception:
             db.rollback()

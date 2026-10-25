@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setTokenState(null)
           setUser(null)
         } else {
-          setBootError(error instanceof Error ? error.message : '无法恢复登录状态')
+          setBootError(error instanceof Error ? error.message : 'Couldn’t restore your session')
         }
       })
       .finally(() => {

@@ -59,7 +59,7 @@ SEASON_ALIASES = {
 def _owned_item(db: DbSession, user_id: str, item_id: str) -> WardrobeItem:
     item = db.get(WardrobeItem, item_id)
     if item is None or item.user_id != user_id:
-        raise HTTPException(status_code=404, detail="衣橱里找不到这件单品")
+        raise HTTPException(status_code=404, detail="Wardrobe item not found")
     return item
 
 
@@ -89,13 +89,13 @@ def _parse_tags(raw: str | None) -> list[str]:
 
 def _validate_category(category: str) -> str:
     if category not in VALID_CATEGORIES:
-        raise HTTPException(status_code=422, detail="请选择有效的单品分类")
+        raise HTTPException(status_code=422, detail="Please choose a valid category")
     return category
 
 
 def _validate_int(value: int, field: str, low: int = 1, high: int = 5) -> int:
     if not low <= value <= high:
-        raise HTTPException(status_code=422, detail=f"{field}需要在 {low}–{high} 之间")
+        raise HTTPException(status_code=422, detail=f"{field} must be between {low} and {high}")
     return value
 
 
@@ -162,11 +162,11 @@ async def create_item(
     favorite: Annotated[bool, Form()] = False,
 ) -> WardrobeItemRead:
     _validate_category(category)
-    _validate_int(formality, "正式度")
-    _validate_int(warmth, "保暖度")
+    _validate_int(formality, "Formality")
+    _validate_int(warmth, "Warmth")
     data = await read_upload(image)
     computed_color_name, computed_color_hex = dominant_color(data)
-    if not color_name or color_name.strip() in {"", "中性色"}:
+    if not color_name or color_name.strip() in {"", "Neutral", "中性色"}:
         color_name = computed_color_name
     if not color_hex:
         color_hex = computed_color_hex
@@ -184,7 +184,7 @@ async def create_item(
     )
     clean_name = " ".join((name or "").split())[:120]
     if not clean_name:
-        clean_name = f"{color_name}{subcategory or CATEGORY_LABELS[category]}"
+        clean_name = f"{color_name} {subcategory or CATEGORY_LABELS[category]}"
 
     parsed_seasons = _parse_seasons(seasons)
     item = WardrobeItem(
@@ -224,7 +224,7 @@ async def analyze_garment(
     if not gemini_service.enabled:
         return GarmentAnalysis(
             available=False,
-            reason="已提取主色；AI 品类识别当前未启用，请手动选择分类",
+            reason="Dominant colour extracted. AI category recognition is currently disabled; please choose a category manually.",
             color_name=computed_name,
             color_hex=computed_hex,
         )
@@ -368,7 +368,7 @@ def set_force_include(
     if payload.force_include and not item.available:
         raise HTTPException(
             status_code=422,
-            detail="不可用的单品不能设为必穿，请先恢复可用状态",
+            detail="An unavailable item cannot be marked as always-wear. Make it available first.",
         )
     item.force_include = payload.force_include
     db.commit()

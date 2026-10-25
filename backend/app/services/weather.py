@@ -13,34 +13,34 @@ from app.core.config import get_settings
 from app.schemas.recommendation import GeocodeResult, WeatherResponse
 
 WMO: dict[int, tuple[str, str]] = {
-    0: ("晴朗", "☀️"),
-    1: ("大致晴朗", "🌤️"),
-    2: ("局部多云", "⛅"),
-    3: ("阴天", "☁️"),
-    45: ("有雾", "🌫️"),
-    48: ("雾凇", "🌫️"),
-    51: ("小毛毛雨", "🌦️"),
-    53: ("毛毛雨", "🌦️"),
-    55: ("较强毛毛雨", "🌧️"),
-    56: ("冻毛毛雨", "🌧️"),
-    57: ("强冻毛毛雨", "🌧️"),
-    61: ("小雨", "🌦️"),
-    63: ("中雨", "🌧️"),
-    65: ("大雨", "🌧️"),
-    66: ("冻雨", "🌧️"),
-    67: ("强冻雨", "🌧️"),
-    71: ("小雪", "🌨️"),
-    73: ("中雪", "🌨️"),
-    75: ("大雪", "❄️"),
-    77: ("米雪", "🌨️"),
-    80: ("阵雨", "🌦️"),
-    81: ("中等阵雨", "🌧️"),
-    82: ("强阵雨", "⛈️"),
-    85: ("阵雪", "🌨️"),
-    86: ("强阵雪", "❄️"),
-    95: ("雷阵雨", "⛈️"),
-    96: ("雷阵雨伴小冰雹", "⛈️"),
-    99: ("雷阵雨伴冰雹", "⛈️"),
+    0: ("Clear", "☀️"),
+    1: ("Mainly clear", "🌤️"),
+    2: ("Partly cloudy", "⛅"),
+    3: ("Overcast", "☁️"),
+    45: ("Fog", "🌫️"),
+    48: ("Depositing rime fog", "🌫️"),
+    51: ("Light drizzle", "🌦️"),
+    53: ("Drizzle", "🌦️"),
+    55: ("Dense drizzle", "🌧️"),
+    56: ("Light freezing drizzle", "🌧️"),
+    57: ("Dense freezing drizzle", "🌧️"),
+    61: ("Light rain", "🌦️"),
+    63: ("Moderate rain", "🌧️"),
+    65: ("Heavy rain", "🌧️"),
+    66: ("Light freezing rain", "🌧️"),
+    67: ("Heavy freezing rain", "🌧️"),
+    71: ("Light snow", "🌨️"),
+    73: ("Moderate snow", "🌨️"),
+    75: ("Heavy snow", "❄️"),
+    77: ("Snow grains", "🌨️"),
+    80: ("Light rain showers", "🌦️"),
+    81: ("Moderate rain showers", "🌧️"),
+    82: ("Violent rain showers", "⛈️"),
+    85: ("Light snow showers", "🌨️"),
+    86: ("Heavy snow showers", "❄️"),
+    95: ("Thunderstorm", "⛈️"),
+    96: ("Thunderstorm with slight hail", "⛈️"),
+    99: ("Thunderstorm with heavy hail", "⛈️"),
 }
 
 
@@ -55,7 +55,7 @@ _geocode_cache: dict[str, tuple[float, list[GeocodeResult]]] = {}
 
 
 def _condition(code: int | None) -> tuple[str, str]:
-    return WMO.get(int(code or 0), ("天气多变", "🌤️"))
+    return WMO.get(int(code or 0), ("Changeable", "🌤️"))
 
 
 async def fetch_tomorrow_weather(
@@ -98,7 +98,7 @@ async def fetch_tomorrow_weather(
     except (httpx.HTTPError, ValueError) as exc:
         raise HTTPException(
             status_code=502,
-            detail="暂时无法获取天气，请手动填写体感温度",
+            detail="Weather is temporarily unavailable. Please enter the feels-like temperature manually.",
         ) from exc
 
     try:
@@ -113,7 +113,9 @@ async def fetch_tomorrow_weather(
         condition, icon = _condition(daily.get("weather_code", [0, 0])[index])
         date = str(daily["time"][index])
     except (KeyError, IndexError, TypeError, ValueError) as exc:
-        raise HTTPException(status_code=502, detail="天气数据暂不可用，请稍后重试") from exc
+        raise HTTPException(
+            status_code=502, detail="Weather data is temporarily unavailable. Please try again shortly."
+        ) from exc
 
     result = WeatherResponse(
         city=city,
@@ -148,14 +150,14 @@ async def geocode_city(query: str) -> list[GeocodeResult]:
                 params={
                     "name": query.strip(),
                     "count": 6,
-                    "language": "zh",
+                    "language": "en",
                     "format": "json",
                 },
             )
             response.raise_for_status()
             payload = response.json()
     except (httpx.HTTPError, ValueError) as exc:
-        raise HTTPException(status_code=502, detail="城市搜索暂不可用") from exc
+        raise HTTPException(status_code=502, detail="City search is temporarily unavailable") from exc
 
     results: list[GeocodeResult] = []
     for row in payload.get("results") or []:
@@ -178,8 +180,8 @@ async def geocode_city(query: str) -> list[GeocodeResult]:
 
 def weather_summary(weather: WeatherSnapshotLike) -> str:
     return (
-        f"{weather.condition}，{weather.temp_min:.0f}–{weather.temp_max:.0f}°C，"
-        f"降水概率 {weather.precipitation_probability}%"
+        f"{weather.condition}, {weather.temp_min:.0f}–{weather.temp_max:.0f}°C, "
+        f"{weather.precipitation_probability}% chance of precipitation"
     )
 
 
@@ -194,16 +196,16 @@ class WeatherSnapshotLike:
 def temperature_band(apparent: float) -> tuple[str, int, int]:
     """Human label, min warmth and max warmth for a given feel-like temp."""
     if apparent >= 30:
-        return "炎热", 1, 2
+        return "Hot", 1, 2
     if apparent >= 24:
-        return "温暖", 1, 3
+        return "Warm", 1, 3
     if apparent >= 18:
-        return "舒适", 2, 3
+        return "Comfortable", 2, 3
     if apparent >= 12:
-        return "微凉", 2, 4
+        return "Cool", 2, 4
     if apparent >= 5:
-        return "寒冷", 3, 5
-    return "严寒", 4, 5
+        return "Cold", 3, 5
+    return "Freezing", 4, 5
 
 
 def season_for_date(date_string: str | None) -> str:

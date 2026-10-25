@@ -20,14 +20,14 @@ export function SplashScreen({ error, onRetry }: { error?: string | null; onRetr
                 leftIcon={<RotateCcw size={15} />}
                 onClick={onRetry}
               >
-                重新连接
+                Reconnect
               </Button>
             )}
           </div>
         ) : (
           <span className="splash__loader">
-            <Spinner size="sm" label="正在打开 OUL" />
-            正在打开你的衣橱
+            <Spinner size="sm" label="Opening OUL" />
+            Opening your wardrobe
           </span>
         )}
       </div>
@@ -57,9 +57,9 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBound
         <div className="app-frame fatal-error">
           <Brand to="/" />
           <p className="o-eyebrow">SOMETHING WENT QUIET</p>
-          <h1>页面暂时走神了</h1>
-          <p>刷新一下，你的衣橱和造型记录都还在。</p>
-          <Button onClick={() => window.location.reload()}>重新载入 OUL</Button>
+          <h1>This page wandered off</h1>
+          <p>Refresh and everything will be right where you left it — wardrobe and looks included.</p>
+          <Button onClick={() => window.location.reload()}>Reload OUL</Button>
         </div>
       )
     }

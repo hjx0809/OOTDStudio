@@ -3,8 +3,6 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowUpRight,
-  Check,
-  Image as ImageIcon,
   Info,
   Layers3,
   Lock,
@@ -23,7 +21,6 @@ import { api, ApiError } from '@/lib/api'
 import { trackGeneration } from '@/lib/generation'
 import { queryKeys, useRecommendation } from '@/lib/queries'
 import type {
-  BackgroundMode,
   Outfit,
   OutfitItem,
   Recommendation,
@@ -34,18 +31,9 @@ import {
   Badge,
   Button,
   InlineNotice,
-  Sheet,
   Skeleton,
   Spinner,
-  TextAreaField,
 } from 'oul-ui'
-
-const BACKGROUND_PROMPTS = [
-  '清晨的清水混凝土庭院，柔和的侧光',
-  '傍晚城市屋顶，背景轻微虚化',
-  '安静的画廊白墙与自然天光',
-  '有绿植和木地板的温暖室内',
-]
 
 function OutfitCollage({
   outfit,
@@ -75,14 +63,14 @@ function OutfitCollage({
             <span className="outfit-collage__spinner">
               <Spinner size="sm" />
             </span>
-            <strong>正在为你试穿</strong>
-            <span>AI 正在把整套衣服放到你的照片上</span>
+            <strong>Trying it on you</strong>
+            <span>AI is placing the full outfit on your photo</span>
           </>
         ) : (
           <>
             <Sparkles size={16} />
-            <strong>造型预览</strong>
-            <span>完整试穿图暂时不可用，这是真实的单品组合预览</span>
+            <strong>Look preview</strong>
+            <span>Full try-on isn't available yet — this is a real preview of the pieces together</span>
           </>
         )}
       </div>
@@ -94,12 +82,10 @@ function LookVisual({
   outfit,
   index,
   total,
-  onBackground,
 }: {
   outfit: Outfit
   index: number
   total: number
-  onBackground: () => void
 }) {
   const [imageFailed, setImageFailed] = useState(false)
   const pending = outfit.image_status === 'pending' || outfit.image_status === 'generating'
@@ -119,7 +105,7 @@ function LookVisual({
         <img
           className="look-visual__image"
           src={outfit.image_url as string}
-          alt={`${outfit.title} 的试穿效果`}
+          alt={`${outfit.title} try-on`}
           onError={() => setImageFailed(true)}
         />
       ) : (
@@ -135,19 +121,19 @@ function LookVisual({
             {outfit.image_kind === 'ai_tryon' ? (
               <Badge tone="accent">
                 <WandSparkles size={10} />
-                AI 试穿
+                AI try-on
               </Badge>
             ) : outfit.image_status === 'ready' ? (
-              <Badge tone="neutral">造型预览</Badge>
+              <Badge tone="neutral">Look preview</Badge>
             ) : null}
-            {pending && <Badge tone="dark">生成中</Badge>}
+            {pending && <Badge tone="dark">Generating</Badge>}
           </div>
         </div>
       )}
       {pending && hasImage && (
         <div className="look-visual__processing">
           <Spinner size="sm" />
-          正在更换背景…
+          Generating your try-on…
         </div>
       )}
       <div className={cn('look-visual__shade', isLookboard && 'look-visual__shade--soft')} />
@@ -157,15 +143,6 @@ function LookVisual({
             <span className="look-visual__kicker serif">OUL / LOOK {String(index + 1).padStart(2, '0')}</span>
             <h2>{outfit.title}</h2>
           </div>
-          <button
-            type="button"
-            className="look-visual__background-btn"
-            onClick={onBackground}
-            disabled={pending}
-          >
-            <ImageIcon size={14} />
-            背景
-          </button>
         </div>
       )}
       {outfit.image_error && !pending && outfit.image_kind === 'lookboard' && (
@@ -210,8 +187,8 @@ function ItemRow({
           className={cn('item-lock-btn', item.force_include && 'is-on')}
           onClick={onToggleForce}
           disabled={busyForce || !item.available}
-          aria-label={item.force_include ? `取消 ${item.name} 必穿` : `将 ${item.name} 设为必穿`}
-          title={item.force_include ? '下次必穿' : '设为下次必穿'}
+          aria-label={item.force_include ? `Remove ${item.name} from must-wear` : `Mark ${item.name} as must-wear`}
+          title={item.force_include ? 'Must-wear next time' : 'Set as must-wear next time'}
         >
           {item.force_include ? <Lock size={14} /> : <LockOpen size={14} />}
         </button>
@@ -219,7 +196,7 @@ function ItemRow({
           type="button"
           role="switch"
           aria-checked={item.available}
-          aria-label={`${item.name} 现在${item.available ? '可穿' : '不可穿'}`}
+          aria-label={`${item.name} is ${item.available ? 'available' : 'unavailable'}`}
           className={cn('mini-switch', item.available && 'is-on')}
           onClick={onToggleAvailable}
           disabled={busyAvailable}
@@ -273,7 +250,7 @@ function ShoppingCard({ suggestion }: { suggestion: ShoppingSuggestion }) {
     <a className="shopping-card" href={link} target="_blank" rel="noreferrer">
       <div className="shopping-card__head">
         <span className={cn('shopping-card__priority', `is-${suggestion.priority}`)}>
-          {suggestion.priority === 'high' ? '优先添置' : suggestion.priority === 'medium' ? '值得考虑' : '可选'}
+          {suggestion.priority === 'high' ? 'Priority buy' : suggestion.priority === 'medium' ? 'Worth considering' : 'Optional'}
         </span>
         <ArrowUpRight size={15} />
       </div>
@@ -281,7 +258,7 @@ function ShoppingCard({ suggestion }: { suggestion: ShoppingSuggestion }) {
       <p>{suggestion.reason}</p>
       <span className="shopping-card__search">
         <ShoppingBag size={12} />
-        搜索类似单品
+        Search similar items
       </span>
     </a>
   )
@@ -298,12 +275,12 @@ function WardrobeGap({
   return (
     <div className="gap-page">
       <header className="looks-header">
-        <button type="button" className="looks-header__back" onClick={onBack} aria-label="返回">
+        <button type="button" className="looks-header__back" onClick={onBack} aria-label="Back">
           <ArrowLeft size={19} />
         </button>
         <div>
           <span className="o-eyebrow">THE TOMORROW EDIT</span>
-          <h1>还差一点</h1>
+          <h1>Almost there</h1>
         </div>
         <span className="looks-header__spacer" />
       </header>
@@ -313,9 +290,9 @@ function WardrobeGap({
         <div className="gap-hero__rings" aria-hidden="true" />
         <span className="o-eyebrow">WARDROBE ALGORITHM, HONESTLY</span>
         <h2>
-          这组场景，
+          For this occasion,
           <br />
-          <span className="serif">衣橱还差几件。</span>
+          <span className="serif">your wardrobe is a few pieces short.</span>
         </h2>
         <p>{recommendation.scenario_note}</p>
       </div>
@@ -333,7 +310,7 @@ function WardrobeGap({
         <section className="gap-shopping">
           <div className="gap-shopping__head">
             <span className="o-eyebrow">WHAT WOULD UNLOCK THIS</span>
-            <h2>补齐这几件，明天就能成立。</h2>
+            <h2>Add these pieces and tomorrow works.</h2>
           </div>
           <div className="shopping-list">
             {recommendation.shopping_suggestions.map((suggestion) => (
@@ -343,7 +320,7 @@ function WardrobeGap({
         </section>
       ) : (
         <InlineNotice tone="info">
-          先添加几件上装、下装和鞋履，再生成一次造型会更有帮助。
+          Add a few tops, bottoms and shoes first — then generate again for better results.
         </InlineNotice>
       )}
 
@@ -353,10 +330,10 @@ function WardrobeGap({
           onClick={() => navigate('/wardrobe/new')}
           rightIcon={<ArrowUpRight size={15} />}
         >
-          去衣橱添置
+          Add to wardrobe
         </Button>
         <Button variant="ghost" onClick={onBack}>
-          重新描述场景
+          Describe another occasion
         </Button>
       </div>
     </div>
@@ -372,10 +349,6 @@ export function LooksPage() {
   const [index, setIndex] = useState(0)
   const [stale, setStale] = useState(false)
   const [rerolling, setRerolling] = useState(false)
-  const [backgroundOpen, setBackgroundOpen] = useState(false)
-  const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>('studio')
-  const [backgroundPrompt, setBackgroundPrompt] = useState('')
-  const [rendering, setRendering] = useState(false)
   const deckRef = useRef<HTMLDivElement>(null)
   const recommendation = recommendationQuery.data
   const outfits = recommendation?.outfits ?? []
@@ -384,16 +357,8 @@ export function LooksPage() {
   useEffect(() => {
     setIndex(0)
     setStale(false)
-    setBackgroundOpen(false)
     deckRef.current?.scrollTo({ left: 0 })
   }, [recommendation?.id])
-
-  useEffect(() => {
-    if (activeOutfit) {
-      setBackgroundMode(activeOutfit.background_mode)
-      setBackgroundPrompt(activeOutfit.background_prompt ?? '')
-    }
-  }, [activeOutfit?.id, activeOutfit?.background_mode, activeOutfit?.background_prompt])
 
   // Opening any unfinished recommendation (history, another tab, a reload)
   // hands it to the global monitor so progress is visible on every page.
@@ -429,12 +394,12 @@ export function LooksPage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.wardrobe })
       setStale(true)
       toast.toast({
-        title: updated.available ? '已恢复可穿' : '已标记为不可穿',
-        description: '点「重新推荐」后，新的造型会排除不可穿的单品。',
+        title: updated.available ? 'Available again' : 'Marked unavailable',
+        description: 'Tap “Recommend again” and new looks will leave out unavailable items.',
       })
     },
     onError: (error) =>
-      toast.error(error instanceof ApiError ? error.message : '可穿状态没有保存'),
+      toast.error(error instanceof ApiError ? error.message : "Availability didn't save"),
   })
 
   const forceMutation = useMutation({
@@ -452,12 +417,12 @@ export function LooksPage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.wardrobe })
       setStale(true)
       toast.toast({
-        title: updated.force_include ? '已设为下次必穿' : '已取消必穿',
-        description: '点「重新推荐」让新的造型应用这个选择。',
+        title: updated.force_include ? 'Set as must-wear' : 'Must-wear removed',
+        description: 'Tap “Recommend again” so your next looks follow this choice.',
       })
     },
     onError: (error) =>
-      toast.error(error instanceof ApiError ? error.message : '必穿状态没有保存'),
+      toast.error(error instanceof ApiError ? error.message : "Must-wear didn't save"),
   })
 
   const reroll = async () => {
@@ -470,36 +435,11 @@ export function LooksPage() {
       trackGeneration(fresh.id, 'looks')
       setStale(false)
       navigate(`/looks/${fresh.id}`, { replace: true })
-      toast.success('重新组合好了', '可用状态与必穿单品已经更新。')
+      toast.success('New looks ready', 'Availability and must-wear pieces are updated.')
     } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : '重新推荐没有完成')
+      toast.error(error instanceof ApiError ? error.message : "Recommendation didn't complete")
     } finally {
       setRerolling(false)
-    }
-  }
-
-  const applyBackground = async () => {
-    if (!recommendation || !activeOutfit) return
-    if (backgroundMode === 'custom' && !backgroundPrompt.trim()) {
-      toast.error('写一句背景描述再生成')
-      return
-    }
-    setRendering(true)
-    try {
-      const updated = await api.recommendations.render(
-        recommendation.id,
-        activeOutfit.id,
-        backgroundMode,
-        backgroundMode === 'custom' ? backgroundPrompt.trim() : null,
-      )
-      queryClient.setQueryData(queryKeys.recommendation(recommendation.id), updated)
-      trackGeneration(recommendation.id, 'render')
-      setBackgroundOpen(false)
-      toast.success('正在重新生成试穿图', '画面会在几十秒内更新，你可以继续查看其他造型。')
-    } catch (error) {
-      toast.error(error instanceof ApiError ? error.message : '背景调整没有完成')
-    } finally {
-      setRendering(false)
     }
   }
 
@@ -527,13 +467,13 @@ export function LooksPage() {
             type="button"
             className="looks-header__back"
             onClick={() => navigate(-1)}
-            aria-label="返回"
+            aria-label="Back"
           >
             <ArrowLeft size={19} />
           </button>
           <div>
             <span className="o-eyebrow">THE TOMORROW EDIT</span>
-            <h1>明日造型</h1>
+            <h1>Tomorrow's looks</h1>
           </div>
           <span className="looks-header__spacer" />
         </header>
@@ -555,15 +495,15 @@ export function LooksPage() {
           </button>
           <div>
             <span className="o-eyebrow">THE TOMORROW EDIT</span>
-            <h1>找不到这组造型</h1>
+            <h1>Looks not found</h1>
           </div>
           <span className="looks-header__spacer" />
         </header>
         <div className="looks-error">
           <InlineNotice tone="critical">
-            这条推荐可能已经删除，或者链接不正确。
+            This recommendation may have been deleted, or the link is incorrect.
           </InlineNotice>
-          <Button onClick={() => navigate('/style')}>重新开始造型</Button>
+          <Button onClick={() => navigate('/style')}>Start a new look</Button>
         </div>
       </div>
     )
@@ -577,13 +517,13 @@ export function LooksPage() {
             type="button"
             className="looks-header__back"
             onClick={() => navigate('/style')}
-            aria-label="返回造型"
+            aria-label="Back to styling"
           >
             <ArrowLeft size={19} />
           </button>
           <div>
             <span className="o-eyebrow">THE TOMORROW EDIT</span>
-            <h1>正在挑选造型</h1>
+            <h1>Choosing your looks</h1>
           </div>
           <span className="looks-header__spacer" />
         </header>
@@ -593,13 +533,13 @@ export function LooksPage() {
           </span>
           <span className="o-eyebrow">OUL ATELIER</span>
           <h2 className="serif">
-            正在从你的衣橱里，
+            Looking through your wardrobe,
             <br />
-            挑选三套可能。
+            choosing three possibilities.
           </h2>
           <p>
-            通常需要几十秒。你可以先去衣橱或首页逛一逛，
-            生成会在后台继续，完成后我们会提醒你。
+            This usually takes under a minute. Browse your wardrobe or home while we work —
+            it keeps running in the background, and we'll let you know when it's ready.
           </p>
         </div>
         <div className="looks-loading">
@@ -619,22 +559,22 @@ export function LooksPage() {
             type="button"
             className="looks-header__back"
             onClick={() => navigate('/style')}
-            aria-label="返回造型"
+            aria-label="Back to styling"
           >
             <ArrowLeft size={19} />
           </button>
           <div>
             <span className="o-eyebrow">THE TOMORROW EDIT</span>
-            <h1>这次没有生成成功</h1>
+            <h1>Something went wrong</h1>
           </div>
           <span className="looks-header__spacer" />
         </header>
         <div className="looks-error">
           <InlineNotice tone="critical">
             {recommendation.warnings[0]?.message ??
-              '造型生成中断了，请回到造型页再试一次。'}
+              'Your looks stopped generating. Head back to the stylist and try again.'}
           </InlineNotice>
-          <Button onClick={() => navigate('/style')}>重新生成</Button>
+          <Button onClick={() => navigate('/style')}>Try again</Button>
         </div>
       </div>
     )
@@ -655,7 +595,7 @@ export function LooksPage() {
           type="button"
           className="looks-header__back"
           onClick={() => navigate('/style')}
-          aria-label="返回造型"
+          aria-label="Back to styling"
         >
           <ArrowLeft size={19} />
         </button>
@@ -664,17 +604,17 @@ export function LooksPage() {
             {formatDateLabel(
               new Date(`${recommendation.weather.date ?? tomorrowISO()}T12:00:00`),
             )}{' '}
-            · 明天
+            · Tomorrow
           </span>
-          <h1>{OCCASION_META[recommendation.occasion_type]?.label ?? '明日造型'}</h1>
+          <h1>{OCCASION_META[recommendation.occasion_type]?.label ?? "Tomorrow's looks"}</h1>
         </div>
         <button
           type="button"
           className="looks-header__refresh"
           onClick={reroll}
           disabled={rerolling}
-          aria-label="换一组造型"
-          title="换一组造型"
+          aria-label="Try another set of looks"
+          title="Try another set of looks"
         >
           {rerolling ? <Spinner size="sm" /> : <RefreshCw size={17} />}
         </button>
@@ -702,7 +642,7 @@ export function LooksPage() {
             {recommendation.warnings.find((warning) => warning.severity === 'critical')?.message}
           </span>
           <button type="button" onClick={reroll} disabled={rerolling}>
-            换一组
+            Shuffle
           </button>
         </div>
       )}
@@ -711,7 +651,7 @@ export function LooksPage() {
         className="look-deck"
         ref={deckRef}
         onScroll={onDeckScroll}
-        aria-label={`${outfits.length} 套造型，左右滑动查看`}
+        aria-label={`${outfits.length} looks — swipe to explore`}
       >
         {outfits.map((outfit, outfitIndex) => (
           <div className="look-slide" key={outfit.id}>
@@ -719,10 +659,6 @@ export function LooksPage() {
               outfit={outfit}
               index={outfitIndex}
               total={outfits.length}
-              onBackground={() => {
-                setIndex(outfitIndex)
-                setBackgroundOpen(true)
-              }}
             />
           </div>
         ))}
@@ -735,18 +671,18 @@ export function LooksPage() {
               key={outfit.id}
               type="button"
               className={cn('look-pager__dot', dotIndex === index && 'is-active')}
-              aria-label={`查看第 ${dotIndex + 1} 套`}
+              aria-label={`View look ${dotIndex + 1}`}
               onClick={() => scrollToLook(dotIndex)}
             />
           ))}
         </div>
         <div className="look-pager__meta">
           {activeOutfit?.image_kind === 'lookboard' && (
-            <span className="look-pager__preview">造型预览</span>
+            <span className="look-pager__preview">Look preview</span>
           )}
           <span className="look-pager__hint">
             <MoveHorizontal size={13} />
-            左右滑动选择
+            Swipe to choose
           </span>
         </div>
       </div>
@@ -763,7 +699,7 @@ export function LooksPage() {
             </div>
             <span className="look-score">
               <em>{activeOutfit.score}</em>
-              契合度
+              match
             </span>
           </div>
 
@@ -775,7 +711,7 @@ export function LooksPage() {
                 <Sparkles size={15} />
               </span>
               <div>
-                <span>造型手法</span>
+                <span>Styling note</span>
                 <p>{activeOutfit.styling_note}</p>
               </div>
             </div>
@@ -785,7 +721,7 @@ export function LooksPage() {
             <span className="o-eyebrow">THE PIECES</span>
             <span className="look-detail__piece-count">
               <Layers3 size={13} />
-              {activeOutfit.items.length} 件
+              {activeOutfit.items.length} pieces
             </span>
           </div>
           <div className="outfit-items">
@@ -806,27 +742,9 @@ export function LooksPage() {
             ))}
           </div>
           <p className="outfit-items__hint">
-            切换「可穿」会更新你的衣橱；点「重新推荐」后，下一组造型会遵循新的状态。
+            Toggling availability updates your wardrobe. Tap “Recommend again” and the next
+            set of looks will follow your new settings.
           </p>
-
-          <div className="look-detail__background-row">
-            <div>
-              <span className="o-eyebrow">BACKGROUND</span>
-              <p>
-                {activeOutfit.background_mode === 'studio'
-                  ? '纯净影棚'
-                  : activeOutfit.background_prompt || '自定义场景'}
-              </p>
-            </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              leftIcon={<ImageIcon size={15} />}
-              onClick={() => setBackgroundOpen(true)}
-            >
-              调整背景
-            </Button>
-          </div>
 
           <WarningsBlock outfits={[activeOutfit]} />
         </div>
@@ -836,7 +754,7 @@ export function LooksPage() {
         <section className="look-advice">
           <div className="look-advice__head">
             <span className="o-eyebrow">THINGS WORTH KNOWING</span>
-            <h2>明天的提醒</h2>
+            <h2>Notes for tomorrow</h2>
           </div>
           <div className="look-warnings">
             {recommendation.warnings.map((warning, warningIndex) => (
@@ -868,8 +786,8 @@ export function LooksPage() {
         <section className="look-shopping">
           <div className="look-shopping__head">
             <span className="o-eyebrow">IF YOU WANT MORE OPTIONS</span>
-            <h2>衣橱还差一点。</h2>
-            <p>这些不是广告，而是能解锁更多造型的具体缺口。</p>
+            <h2>Your wardrobe is a few pieces short.</h2>
+            <p>No ads here — just the specific gaps that unlock more outfits.</p>
           </div>
           <div className="shopping-list">
             {recommendation.shopping_suggestions.map((suggestion) => (
@@ -886,10 +804,10 @@ export function LooksPage() {
         <span className="serif">Made for your real wardrobe.</span>
         <div className="look-closing__actions">
           <Button variant="secondary" size="sm" onClick={() => navigate('/style')}>
-            再想一个场景
+            Try another occasion
           </Button>
           <Link to="/wardrobe" className="text-link">
-            去衣橱看看
+            Browse your wardrobe
             <ArrowUpRight size={13} />
           </Link>
         </div>
@@ -898,8 +816,8 @@ export function LooksPage() {
       {stale && (
         <div className="reroll-bar">
           <div>
-            <span>衣橱状态已更新</span>
-            <em>重新推荐以应用新的可穿与必穿设置</em>
+            <span>Wardrobe updated</span>
+            <em>Recommend again to apply your new availability and must-wear settings</em>
           </div>
           <Button
             variant="accent"
@@ -908,96 +826,10 @@ export function LooksPage() {
             leftIcon={<RefreshCw size={14} />}
             onClick={reroll}
           >
-            重新推荐
+            Recommend again
           </Button>
         </div>
       )}
-
-      <Sheet
-        open={backgroundOpen}
-        onClose={() => setBackgroundOpen(false)}
-        title="调整试穿背景"
-        description="只为当前这套造型重新生成，不会改变其他两套。"
-        footer={
-          <Button full size="lg" loading={rendering} onClick={applyBackground}>
-            应用并重新生成
-          </Button>
-        }
-      >
-        <div className="background-sheet-options">
-          <button
-            type="button"
-            className={cn(
-              'background-sheet-option',
-              backgroundMode === 'studio' && 'is-active',
-            )}
-            onClick={() => setBackgroundMode('studio')}
-          >
-            <span className="background-sheet-option__visual background-sheet-option__visual--studio">
-              <span>OUL</span>
-            </span>
-            <span>
-              <strong>纯净影棚</strong>
-              <em>浅灰无缝背景，聚焦人物和衣服</em>
-            </span>
-            {backgroundMode === 'studio' && (
-              <span className="background-sheet-option__check">
-                <Check size={12} />
-              </span>
-            )}
-          </button>
-          <button
-            type="button"
-            className={cn(
-              'background-sheet-option',
-              backgroundMode === 'custom' && 'is-active',
-            )}
-            onClick={() => setBackgroundMode('custom')}
-          >
-            <span className="background-sheet-option__visual background-sheet-option__visual--custom">
-              <span />
-              <span />
-            </span>
-            <span>
-              <strong>自定义场景</strong>
-              <em>描述一个背景，让造型走进那个画面</em>
-            </span>
-            {backgroundMode === 'custom' && (
-              <span className="background-sheet-option__check">
-                <Check size={12} />
-              </span>
-            )}
-          </button>
-        </div>
-        {backgroundMode === 'custom' && (
-          <div className="background-sheet-prompt">
-            <TextAreaField
-              label="背景画面"
-              placeholder="例如：傍晚城市屋顶，远处灯光轻微虚化，人物全身清晰。"
-              value={backgroundPrompt}
-              maxLength={500}
-              onChange={(event) => setBackgroundPrompt(event.target.value)}
-            />
-            <div className="chip-wrap">
-              {BACKGROUND_PROMPTS.map((prompt) => (
-                <button
-                  key={prompt}
-                  type="button"
-                  className="o-chip"
-                  onClick={() => setBackgroundPrompt(prompt)}
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-        {activeOutfit?.image_kind === 'lookboard' && (
-          <InlineNotice tone="info" icon={<Info size={15} />}>
-            当前是造型预览板：已按你的背景描述合成场景，但身上的服装仍来自基础照片。完整 AI 换装会在图像服务可用时自动启用。
-          </InlineNotice>
-        )}
-      </Sheet>
     </div>
   )
 }

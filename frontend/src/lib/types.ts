@@ -20,7 +20,6 @@ export type OccasionType =
   | 'sport'
   | 'study'
   | 'lounge'
-export type BackgroundMode = 'studio' | 'custom'
 export type Season = 'spring' | 'summer' | 'autumn' | 'winter'
 
 export interface User {
@@ -160,8 +159,6 @@ export interface Outfit {
   image_status: 'pending' | 'generating' | 'ready' | 'failed' | 'unavailable'
   image_kind: 'ai_tryon' | 'lookboard' | null
   image_error: string | null
-  background_mode: BackgroundMode
-  background_prompt: string | null
 }
 
 export interface Recommendation {
@@ -169,8 +166,6 @@ export interface Recommendation {
   occasion: string
   occasion_type: OccasionType
   weather: Weather
-  background_mode: BackgroundMode
-  background_prompt: string | null
   forced_item_ids: string[]
   status: 'planning' | 'ready' | 'ready_partial' | 'wardrobe_gap' | 'failed'
   ai_source: 'gemini' | 'atelier' | string
@@ -197,8 +192,6 @@ export interface CreateRecommendationPayload {
   occasion: string
   occasion_type: OccasionType
   weather: Weather
-  background_mode: BackgroundMode
-  background_prompt?: string | null
   forced_item_ids?: string[]
   outfit_count?: number
 }

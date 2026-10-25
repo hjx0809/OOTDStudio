@@ -21,7 +21,6 @@ OccasionType = Literal[
     "study",
     "lounge",
 ]
-BackgroundMode = Literal["studio", "custom"]
 
 
 class WeatherSnapshot(BaseModel):
@@ -32,14 +31,14 @@ class WeatherSnapshot(BaseModel):
     apparent_temp: float = Field(ge=-70, le=80)
     precipitation_probability: int = Field(default=0, ge=0, le=100)
     wind_speed: float = Field(default=0, ge=0, le=300)
-    condition: str = Field(default="晴", max_length=60)
+    condition: str = Field(default="Clear", max_length=60)
     icon: str = Field(default="☀️", max_length=16)
     source: str | None = Field(default="manual", max_length=40)
 
     @model_validator(mode="after")
     def validate_range(self) -> WeatherSnapshot:
         if self.temp_max < self.temp_min:
-            raise ValueError("最高温度不能低于最低温度")
+            raise ValueError("The maximum temperature cannot be lower than the minimum")
         return self
 
 
@@ -47,8 +46,6 @@ class CreateRecommendationRequest(BaseModel):
     occasion: str = Field(min_length=2, max_length=200)
     occasion_type: OccasionType = "everyday"
     weather: WeatherSnapshot
-    background_mode: BackgroundMode = "studio"
-    background_prompt: str | None = Field(default=None, max_length=500)
     forced_item_ids: list[str] = Field(default_factory=list, max_length=20)
     outfit_count: int = Field(default=3, ge=1, le=4)
 
@@ -57,14 +54,8 @@ class CreateRecommendationRequest(BaseModel):
     def clean_occasion(cls, value: str) -> str:
         value = " ".join(value.split())
         if len(value) < 2:
-            raise ValueError("请再具体描述一下明天的场景")
+            raise ValueError("Please describe tomorrow's occasion in a little more detail")
         return value
-
-    @model_validator(mode="after")
-    def validate_background(self) -> CreateRecommendationRequest:
-        if self.background_mode == "custom" and not (self.background_prompt or "").strip():
-            raise ValueError("自定义背景需要填写画面描述")
-        return self
 
 
 class OutfitItemSnapshot(BaseModel):
@@ -111,8 +102,6 @@ class OutfitRead(BaseModel):
     image_status: str
     image_kind: str | None = None
     image_error: str | None = None
-    background_mode: str = "studio"
-    background_prompt: str | None = None
 
 
 class RecommendationRead(BaseModel):
@@ -120,8 +109,6 @@ class RecommendationRead(BaseModel):
     occasion: str
     occasion_type: str
     weather: WeatherSnapshot
-    background_mode: str
-    background_prompt: str | None = None
     forced_item_ids: list[str] = Field(default_factory=list)
     status: str
     ai_source: str
@@ -142,17 +129,6 @@ class RecommendationSummary(BaseModel):
     cover_image_url: str | None = None
     look_count: int
     created_at: datetime
-
-
-class RenderImageRequest(BaseModel):
-    background_mode: BackgroundMode = "studio"
-    background_prompt: str | None = Field(default=None, max_length=500)
-
-    @model_validator(mode="after")
-    def validate_background(self) -> RenderImageRequest:
-        if self.background_mode == "custom" and not (self.background_prompt or "").strip():
-            raise ValueError("自定义背景需要填写画面描述")
-        return self
 
 
 class WeatherResponse(BaseModel):

@@ -6,11 +6,11 @@ export function cn(...values: Array<string | false | null | undefined>): string 
 
 export function greeting(date = new Date()): string {
   const hour = date.getHours()
-  if (hour < 5) return '夜深了'
-  if (hour < 11) return '早上好'
-  if (hour < 14) return '中午好'
-  if (hour < 18) return '下午好'
-  return '晚上好'
+  if (hour < 5) return 'Still up late'
+  if (hour < 11) return 'Good morning'
+  if (hour < 14) return 'Good afternoon'
+  if (hour < 18) return 'Good evening'
+  return 'Good night'
 }
 
 export function tomorrowISO(): string {
@@ -23,7 +23,7 @@ export function tomorrowISO(): string {
 }
 
 export function formatDateLabel(date = new Date()): string {
-  return date.toLocaleDateString('zh-CN', {
+  return date.toLocaleDateString('en-US', {
     month: 'long',
     day: 'numeric',
     weekday: 'long',
@@ -34,7 +34,7 @@ export function formatCompactDate(value: string | Date | null | undefined): stri
   if (!value) return ''
   const date = typeof value === 'string' ? new Date(value) : value
   if (Number.isNaN(date.getTime())) return ''
-  return date.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })
+  return date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })
 }
 
 export function formatRelative(value: string): string {
@@ -42,12 +42,12 @@ export function formatRelative(value: string): string {
   if (Number.isNaN(date.getTime())) return ''
   const diff = Date.now() - date.getTime()
   const minutes = Math.floor(diff / 60_000)
-  if (minutes < 1) return '刚刚'
-  if (minutes < 60) return `${minutes} 分钟前`
+  if (minutes < 1) return 'Just now'
+  if (minutes < 60) return `${minutes} min ago`
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours} 小时前`
+  if (hours < 24) return `${hours} hr ago`
   const days = Math.floor(hours / 24)
-  if (days < 7) return `${days} 天前`
+  if (days < 7) return `${days} d ago`
   return formatCompactDate(date)
 }
 
@@ -55,13 +55,13 @@ export const CATEGORY_META: Record<
   Category,
   { label: string; short: string; role: string }
 > = {
-  top: { label: '上装', short: '上装', role: 'TOP' },
-  bottom: { label: '下装', short: '下装', role: 'BOTTOM' },
-  dress: { label: '连衣裙', short: '连身', role: 'DRESS' },
-  outerwear: { label: '外套', short: '外套', role: 'OUTER' },
-  shoes: { label: '鞋履', short: '鞋履', role: 'SHOES' },
-  bag: { label: '包袋', short: '包袋', role: 'BAG' },
-  accessory: { label: '配饰', short: '配饰', role: 'ACCESSORY' },
+  top: { label: 'Top', short: 'Top', role: 'TOP' },
+  bottom: { label: 'Bottom', short: 'Bottom', role: 'BOTTOM' },
+  dress: { label: 'Dress', short: 'Dress', role: 'DRESS' },
+  outerwear: { label: 'Outerwear', short: 'Outer', role: 'OUTER' },
+  shoes: { label: 'Shoes', short: 'Shoes', role: 'SHOES' },
+  bag: { label: 'Bag', short: 'Bag', role: 'BAG' },
+  accessory: { label: 'Accessory', short: 'Accessory', role: 'ACCESSORY' },
 }
 
 export const CATEGORY_OPTIONS = Object.entries(CATEGORY_META).map(([value, meta]) => ({
@@ -73,18 +73,18 @@ export const OCCASION_META: Record<
   OccasionType,
   { label: string; short: string; hint: string }
 > = {
-  everyday: { label: '日常', short: '日常', hint: '不费力的完整感' },
-  work: { label: '通勤', short: '通勤', hint: '利落、耐看、好活动' },
-  interview: { label: '面试', short: '面试', hint: '可信、克制、有结构' },
-  date: { label: '约会', short: '约会', hint: '松弛的精致感' },
-  dinner: { label: '晚餐', short: '晚餐', hint: '灯光下的材质层次' },
-  party: { label: '派对', short: '派对', hint: '一个明确记忆点' },
-  formal: { label: '正式典礼', short: '典礼', hint: '庄重与剪裁' },
-  travel: { label: '旅行', short: '旅行', hint: '移动中的舒适和体面' },
-  outdoor: { label: '户外', short: '户外', hint: '防护优先，轻量活动' },
-  sport: { label: '运动', short: '运动', hint: '透气、支撑、自由' },
-  study: { label: '校园', short: '校园', hint: '自在、耐穿、轻便' },
-  lounge: { label: '居家', short: '居家', hint: '柔软与呼吸感' },
+  everyday: { label: 'Everyday', short: 'Everyday', hint: 'Effortless polish, head to toe' },
+  work: { label: 'Work', short: 'Work', hint: 'Sharp, easy to move in' },
+  interview: { label: 'Interview', short: 'Interview', hint: 'Credible, composed, structured' },
+  date: { label: 'Date', short: 'Date', hint: 'Relaxed refinement' },
+  dinner: { label: 'Dinner', short: 'Dinner', hint: 'Texture that reads in low light' },
+  party: { label: 'Party', short: 'Party', hint: 'One clear statement' },
+  formal: { label: 'Formal', short: 'Formal', hint: 'Occasion weight and fine tailoring' },
+  travel: { label: 'Travel', short: 'Travel', hint: 'Comfort and poise on the move' },
+  outdoor: { label: 'Outdoor', short: 'Outdoor', hint: 'Weather-ready, light on movement' },
+  sport: { label: 'Sport', short: 'Sport', hint: 'Breathable, supported, free' },
+  study: { label: 'Campus', short: 'Campus', hint: 'Easy, hard-wearing, light' },
+  lounge: { label: 'At home', short: 'At home', hint: 'Soft and breathable' },
 }
 
 export const OCCASION_OPTIONS = Object.entries(OCCASION_META).map(([value, meta]) => ({
@@ -93,10 +93,10 @@ export const OCCASION_OPTIONS = Object.entries(OCCASION_META).map(([value, meta]
 }))
 
 export const SEASON_LABELS: Record<Season, string> = {
-  spring: '春',
-  summer: '夏',
-  autumn: '秋',
-  winter: '冬',
+  spring: 'Spring',
+  summer: 'Summer',
+  autumn: 'Autumn',
+  winter: 'Winter',
 }
 
 export const SEASON_OPTIONS = Object.entries(SEASON_LABELS).map(([value, label]) => ({
@@ -105,38 +105,38 @@ export const SEASON_OPTIONS = Object.entries(SEASON_LABELS).map(([value, label])
 }))
 
 export const STYLE_OPTIONS = [
-  '极简',
-  '通勤',
-  '法式',
-  '优雅',
-  '街头',
-  '复古',
-  '中性',
-  '学院',
-  '机能',
-  '运动',
-  '浪漫',
-  '度假',
-  '经典',
-  '前卫',
+  'minimal',
+  'work',
+  'french',
+  'elegant',
+  'street',
+  'vintage',
+  'neutral',
+  'preppy',
+  'technical',
+  'sport',
+  'romantic',
+  'resort',
+  'classic',
+  'avant-garde',
 ] as const
 
-export const BODY_SHAPES = ['梨形', '苹果形', '沙漏形', '直筒形', '倒三角', '不确定'] as const
+export const BODY_SHAPES = ['Pear', 'Apple', 'Hourglass', 'Rectangle', 'Inverted triangle', 'Not sure'] as const
 
-export const SKIN_TONES = ['冷白', '自然', '暖黄', '小麦', '深肤色', '不确定'] as const
+export const SKIN_TONES = ['Cool', 'Natural', 'Warm', 'Tan', 'Deep', 'Not sure'] as const
 
 const OCCASION_KEYWORDS: Array<[string[], OccasionType]> = [
-  [['面试', '面谈', '求职', '复试'], 'interview'],
-  [['婚礼', '典礼', '颁奖', '葬礼', '晚宴', '正式', '年会'], 'formal'],
-  [['上班', '通勤', '会议', '汇报', '商务', '办公', '见客户'], 'work'],
-  [['约会', 'date', '咖啡', '看展', '见面'], 'date'],
-  [['晚餐', 'dinner', '餐厅', '小酒馆', '聚餐'], 'dinner'],
-  [['派对', 'party', '生日', '酒吧', 'livehouse', '音乐节'], 'party'],
-  [['徒步', '露营', '爬山', '户外', '郊游', '公园', '海边'], 'outdoor'],
-  [['跑步', '健身', '运动', '瑜伽', '球', '骑行'], 'sport'],
-  [['出差', '旅行', '旅游', '度假', '飞机', '高铁', '机场'], 'travel'],
-  [['上课', '校园', '图书馆', '自习', '学校'], 'study'],
-  [['居家', '在家', '宅', '楼下'], 'lounge'],
+  [['interview', 'job interview', 'recruiter'], 'interview'],
+  [['wedding', 'ceremony', 'gala', 'funeral', 'awards', 'formal', 'dinner party'], 'formal'],
+  [['workout', 'gym', 'run', 'running', 'yoga', 'cycling', 'tennis', 'training', 'sport'], 'sport'],
+  [['work', 'office', 'meeting', 'presentation', 'business', 'client', 'commute'], 'work'],
+  [['date', 'coffee', 'gallery', 'catch up'], 'date'],
+  [['dinner', 'restaurant', 'bistro', 'supper'], 'dinner'],
+  [['party', 'birthday', 'bar', 'livehouse', 'club', 'concert', 'festival'], 'party'],
+  [['hike', 'hiking', 'camping', 'trail', 'outdoor', 'park', 'beach', 'picnic'], 'outdoor'],
+  [['travel', 'trip', 'flight', 'airport', 'train', 'vacation', 'getaway', 'hotel'], 'travel'],
+  [['class', 'campus', 'library', 'study', 'school', 'lecture'], 'study'],
+  [['home', 'at home', 'lounge', 'indoors', 'relax'], 'lounge'],
 ]
 
 export function inferOccasionType(text: string): OccasionType {
@@ -164,9 +164,9 @@ export function currentSeason(): Season {
 }
 
 export function fitLabel(value: string | null): string {
-  if (value === 'tailored') return '利落合身'
-  if (value === 'relaxed') return '松弛廓形'
-  return '自然合身'
+  if (value === 'tailored') return 'Tailored'
+  if (value === 'relaxed') return 'Relaxed'
+  return 'Regular'
 }
 
 export function formatFileSize(bytes: number): string {
@@ -196,7 +196,7 @@ export async function compressImage(
       }
       image.onerror = () => {
         URL.revokeObjectURL(objectUrl)
-        reject(new Error('无法读取这张照片'))
+        reject(new Error('Could not read this photo'))
       }
       image.src = objectUrl
     })
@@ -217,7 +217,7 @@ export async function compressImage(
   if ('close' in bitmap) bitmap.close()
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
-      (result) => (result ? resolve(result) : reject(new Error('照片处理失败'))),
+      (result) => (result ? resolve(result) : reject(new Error('Photo processing failed'))),
       'image/jpeg',
       quality,
     )
@@ -231,7 +231,7 @@ export function validateEmail(value: string): boolean {
 }
 
 export function pluralLooks(count: number): string {
-  return `${count} 套`
+  return `${count} ${count === 1 ? 'look' : 'looks'}`
 }
 
 export function getGreetingName(name: string): string {

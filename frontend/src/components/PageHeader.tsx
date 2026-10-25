@@ -37,7 +37,7 @@ export function PageHeader({
     >
       <div className="page-header__side">
         <IconButton
-          label="返回"
+          label="Back"
           variant={transparent ? 'dark' : 'surface'}
           onClick={() => {
             if (onBack) onBack()

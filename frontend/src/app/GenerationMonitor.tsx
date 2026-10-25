@@ -44,18 +44,18 @@ export function GenerationMonitor() {
     const ready = data.outfits.filter((outfit) => outfit.image_status === 'ready').length
     if (!onLooksPage) {
       if (data.status === 'failed') {
-        toast.error('造型没有生成成功', '回到造型页再试一次吧。')
+        toast.error('That look didn’t come together', 'Head back to your looks and give it another go.')
       } else if (data.status === 'wardrobe_gap' || data.outfits.length === 0) {
         toast.toast({
-          title: '衣橱还差几件单品',
-          description: '看看缺什么，补齐后造型会更完整。',
+          title: 'Your wardrobe needs a few more pieces',
+          description: 'See what’s missing — a fuller wardrobe makes for fuller looks.',
         })
       } else if (active.kind === 'render') {
-        toast.success('试穿图更新好了', '可以回去看看新的背景。')
+        toast.success('Your try-on is ready', 'Head back to see the new look.')
       } else {
         toast.success(
-          '明天的造型准备好了',
-          `${data.outfits.length} 套造型${ready ? `，${ready} 张试穿图` : ''}。`,
+          'Tomorrow’s looks are ready',
+          `${data.outfits.length} ${data.outfits.length === 1 ? 'look' : 'looks'}${ready ? `, ${ready} ${ready === 1 ? 'try-on' : 'try-ons'}` : ''}.`,
         )
       }
     }

@@ -16,7 +16,7 @@ export function Brand({
     <Link
       to={to}
       className={cn('brand', light && 'brand--light', compact && 'brand--compact', className)}
-      aria-label="OUL Studio 首页"
+      aria-label="OUL Studio home"
     >
       <span className="brand__word">OUL</span>
       <span className="brand__dot" aria-hidden="true" />

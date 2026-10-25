@@ -12,7 +12,7 @@ function AuthHeader({ mode }: { mode: 'login' | 'register' }) {
     <header className="auth__nav">
       <Brand />
       <Link to={mode === 'login' ? '/register' : '/login'} className="auth__switch-link">
-        {mode === 'login' ? '创建账号' : '已有账号'}
+        {mode === 'login' ? 'Create account' : 'Sign in'}
       </Link>
     </header>
   )
@@ -32,8 +32,8 @@ export function LoginPage() {
     event.preventDefault()
     setError(null)
     const nextErrors: typeof fieldErrors = {}
-    if (!validateEmail(email)) nextErrors.email = '请输入有效的邮箱地址'
-    if (!password) nextErrors.password = '请输入密码'
+    if (!validateEmail(email)) nextErrors.email = 'Enter a valid email address'
+    if (!password) nextErrors.password = 'Enter your password'
     setFieldErrors(nextErrors)
     if (Object.keys(nextErrors).length) return
     setBusy(true)
@@ -44,7 +44,7 @@ export function LoginPage() {
       setError(
         requestError instanceof ApiError
           ? requestError.message
-          : '登录没有完成，请稍后再试',
+          : "Sign-in didn't go through. Try again in a moment.",
       )
     } finally {
       setBusy(false)
@@ -58,11 +58,11 @@ export function LoginPage() {
         <div className="auth__heading">
           <p className="o-eyebrow">WELCOME BACK</p>
           <h1>
-            衣橱还在，
+            Your wardrobe is here,
             <br />
-            <span className="serif">明天也在等你。</span>
+            <span className="serif">and tomorrow is waiting.</span>
           </h1>
-          <p>登录后继续查看你的造型与衣橱。</p>
+          <p>Sign in to pick up your looks and wardrobe where you left off.</p>
         </div>
 
         {error && (
@@ -73,7 +73,7 @@ export function LoginPage() {
 
         <form className="auth__form" onSubmit={submit} noValidate>
           <TextField
-            label="邮箱"
+            label="Email"
             type="email"
             inputMode="email"
             autoComplete="email"
@@ -83,10 +83,10 @@ export function LoginPage() {
             onChange={(event) => setEmail(event.target.value)}
           />
           <TextField
-            label="密码"
+            label="Password"
             type={showPassword ? 'text' : 'password'}
             autoComplete="current-password"
-            placeholder="输入你的密码"
+            placeholder="Enter your password"
             value={password}
             error={fieldErrors.password}
             onChange={(event) => setPassword(event.target.value)}
@@ -95,25 +95,25 @@ export function LoginPage() {
                 type="button"
                 className="input-action"
                 onClick={() => setShowPassword((value) => !value)}
-                aria-label={showPassword ? '隐藏密码' : '显示密码'}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             }
           />
           <Button type="submit" size="lg" full loading={busy}>
-            进入我的衣橱
+            Enter my wardrobe
           </Button>
         </form>
 
         <div className="auth__security">
           <LockKeyhole size={14} />
-          <span>登录状态仅保存在本机，照片通过私人凭证访问。</span>
+          <span>Your session stays on this device. Photos are accessed with private credentials.</span>
         </div>
       </main>
       <footer className="auth__footer">
         <p>
-          还没有账号？ <Link to="/register">用 3 分钟建立你的私享衣橱</Link>
+          New here? <Link to="/register">Build your private wardrobe in 3 minutes</Link>
         </p>
       </footer>
     </div>
@@ -142,10 +142,10 @@ export function RegisterPage() {
     event.preventDefault()
     setError(null)
     const nextErrors: typeof fieldErrors = {}
-    if (!displayName.trim()) nextErrors.name = '想让 OUL 怎么称呼你？'
-    if (!validateEmail(email)) nextErrors.email = '请输入有效的邮箱地址'
-    if (password.length < 8) nextErrors.password = '密码至少需要 8 位'
-    if (!acceptTerms) nextErrors.terms = '请先同意服务条款与隐私说明'
+    if (!displayName.trim()) nextErrors.name = 'What should OUL call you?'
+    if (!validateEmail(email)) nextErrors.email = 'Enter a valid email address'
+    if (password.length < 8) nextErrors.password = 'Use at least 8 characters'
+    if (!acceptTerms) nextErrors.terms = 'Please accept the terms and privacy notice'
     setFieldErrors(nextErrors)
     if (Object.keys(nextErrors).length) return
     setBusy(true)
@@ -161,7 +161,7 @@ export function RegisterPage() {
       setError(
         requestError instanceof ApiError
           ? requestError.message
-          : '创建账号没有完成，请稍后再试',
+          : "Couldn't create your account. Try again in a moment.",
       )
     } finally {
       setBusy(false)
@@ -175,11 +175,11 @@ export function RegisterPage() {
         <div className="auth__heading">
           <p className="o-eyebrow">BEGIN YOUR EDIT</p>
           <h1>
-            先认识你，
+            Let's start with you,
             <br />
-            <span className="serif">再认识你的衣橱。</span>
+            <span className="serif">then your wardrobe.</span>
           </h1>
-          <p>注册后建立身体档案，并上传一张全身基础照片。</p>
+          <p>Create your body profile and upload one full-length base photo.</p>
         </div>
 
         {error && (
@@ -190,16 +190,16 @@ export function RegisterPage() {
 
         <form className="auth__form" onSubmit={submit} noValidate>
           <TextField
-            label="怎么称呼你"
+            label="What should we call you"
             autoComplete="nickname"
-            placeholder="你的名字"
+            placeholder="Your name"
             maxLength={80}
             value={displayName}
             error={fieldErrors.name}
             onChange={(event) => setDisplayName(event.target.value)}
           />
           <TextField
-            label="邮箱"
+            label="Email"
             type="email"
             inputMode="email"
             autoComplete="email"
@@ -209,20 +209,20 @@ export function RegisterPage() {
             onChange={(event) => setEmail(event.target.value)}
           />
           <TextField
-            label="密码"
+            label="Password"
             type={showPassword ? 'text' : 'password'}
             autoComplete="new-password"
-            placeholder="至少 8 位"
+            placeholder="At least 8 characters"
             value={password}
             error={fieldErrors.password}
-            hint={password && password.length < 8 ? '再长一点，至少 8 位' : '建议混合大小写与数字'}
+            hint={password && password.length < 8 ? 'A little longer — 8 characters minimum' : 'Mix upper and lower case with numbers'}
             onChange={(event) => setPassword(event.target.value)}
             trailing={
               <button
                 type="button"
                 className="input-action"
                 onClick={() => setShowPassword((value) => !value)}
-                aria-label={showPassword ? '隐藏密码' : '显示密码'}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -243,11 +243,11 @@ export function RegisterPage() {
               />
               <span className="check-row__box" aria-hidden="true" />
               <span className="check-row__label">
-                我同意服务条款，并了解照片仅用于生成我的私人造型。
+                I agree to the terms and understand my photos are used only to create my private looks.
               </span>
             </label>
             <button type="button" className="text-button" onClick={() => setLegalOpen(true)}>
-              查看条款与隐私说明
+              Read terms & privacy
             </button>
             {fieldErrors.terms && (
               <p className="o-field__error" role="alert">
@@ -257,50 +257,54 @@ export function RegisterPage() {
           </div>
 
           <Button type="submit" size="lg" full loading={busy}>
-            创建账号，开始建档
+            Create account & start my profile
           </Button>
         </form>
 
         <div className="auth__security">
           <ShieldCheck size={14} />
-          <span>你的照片不会出现在公共区域，也不会用于训练我们的模型。</span>
+          <span>Your photos never appear publicly and are never used to train our models.</span>
         </div>
       </main>
       <footer className="auth__footer">
         <p>
-          已经有账号？ <Link to="/login">直接登录</Link>
+          Already have an account? <Link to="/login">Sign in</Link>
         </p>
       </footer>
 
       <Sheet
         open={legalOpen}
         onClose={() => setLegalOpen(false)}
-        title="服务与隐私说明"
-        description="用清楚、直接的方式说明 OUL 如何处理你的资料。"
+        title="Terms & privacy"
+        description="A clear, straightforward look at how OUL handles your data."
       >
         <div className="legal-copy">
-          <h3>你的照片</h3>
+          <h3>Your photos</h3>
           <p>
-            全身基础照片与单品照片保存在本应用的本地数据库与上传目录中，
-            仅用于生成你的私人造型和试穿效果。媒体地址需要登录凭证才能访问。
+            Your full-length base photo and item photos live in this app's local database and
+            upload folder, used only to create your private looks and try-ons. Media URLs require
+            sign-in credentials.
           </p>
-          <h3>AI 处理</h3>
+          <h3>AI processing</h3>
           <p>
-            当你触发造型或试穿时，相关照片与结构化衣橱信息会发送至 Google Gemini
-            进行合成。它们不会被用于公开发布；具体数据处理也受你的 Gemini API 服务条款约束。
+            When you create a look or try-on, the relevant photos and structured wardrobe details
+            are sent to Google Gemini for composition. They are never published publicly; specific
+            handling is also governed by your Gemini API terms.
           </p>
-          <h3>你的控制权</h3>
+          <h3>You're in control</h3>
           <p>
-            你可以随时删除衣橱单品、造型记录，或在「我的 → 账户与隐私」中永久删除账户。
-            删除账户会同时移除衣橱、造型记录与全部上传照片。
+            You can delete wardrobe items and looks at any time, or permanently delete your account
+            under Me → Account & privacy. Deleting your account also removes your wardrobe, looks,
+            and all uploaded photos.
           </p>
-          <h3>服务范围</h3>
+          <h3>What OUL is for</h3>
           <p>
-            OUL 提供穿搭建议，不构成安全防护或医疗建议。极端天气与户外活动请优先遵循专业机构指引。
+            OUL offers styling suggestions, not safety or medical advice. In extreme weather or
+            outdoor activity, follow guidance from local authorities first.
           </p>
         </div>
         <Button variant="secondary" full onClick={() => setLegalOpen(false)}>
-          我知道了
+          Got it
         </Button>
       </Sheet>
     </div>

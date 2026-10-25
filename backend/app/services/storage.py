@@ -54,17 +54,17 @@ async def read_upload(upload: UploadFile) -> bytes:
     if upload.content_type not in ALLOWED_UPLOAD_TYPES:
         raise HTTPException(
             status_code=415,
-            detail="仅支持 JPG、PNG、WebP 或 HEIC 格式的照片",
+            detail="Only JPG, PNG, WebP or HEIC photos are supported",
         )
     limit = settings.max_upload_mb * 1024 * 1024
     data = await upload.read(limit + 1)
     if len(data) > limit:
         raise HTTPException(
             status_code=413,
-            detail=f"照片不能超过 {settings.max_upload_mb} MB",
+            detail=f"Photos cannot exceed {settings.max_upload_mb} MB",
         )
     if not data:
-        raise HTTPException(status_code=400, detail="照片内容为空，请重新选择")
+        raise HTTPException(status_code=400, detail="The photo is empty. Please choose another one.")
     return data
 
 
@@ -74,10 +74,15 @@ def _normalize(data: bytes, max_edge: int, *, quality: int = 90) -> Image.Image:
             image = ImageOps.exif_transpose(opened)
             image.load()
     except (UnidentifiedImageError, OSError, ValueError) as exc:
-        raise HTTPException(status_code=422, detail="无法读取这张照片，请换一张重试") from exc
+        raise HTTPException(
+            status_code=422, detail="We couldn't read this photo. Please try another one."
+        ) from exc
 
     if image.width * image.height > 48_000_000:
-        raise HTTPException(status_code=422, detail="照片分辨率过高，请压缩后重试")
+        raise HTTPException(
+            status_code=422,
+            detail="This photo's resolution is too high. Please compress it and try again.",
+        )
 
     if image.mode in {"RGBA", "LA"} or (
         image.mode == "P" and "transparency" in image.info
@@ -151,16 +156,16 @@ def resolve_media_path(relative_path: str, user_id: str) -> Path:
     try:
         candidate.relative_to(root)
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail="图片不存在") from exc
+        raise HTTPException(status_code=404, detail="Image not found") from exc
     if not candidate.is_file():
-        raise HTTPException(status_code=404, detail="图片不存在")
+        raise HTTPException(status_code=404, detail="Image not found")
     # A user can only read files inside their own namespace.
     try:
         candidate.relative_to(root / user_id)
     except ValueError as exc:
-        raise HTTPException(status_code=403, detail="无权访问这张图片") from exc
+        raise HTTPException(status_code=403, detail="You do not have access to this image") from exc
     if candidate.suffix.lower() not in {".jpg", ".jpeg", ".png", ".webp"}:
-        raise HTTPException(status_code=404, detail="图片不存在")
+        raise HTTPException(status_code=404, detail="Image not found")
     return candidate
 
 
@@ -178,7 +183,7 @@ def dominant_color(data: bytes) -> tuple[str, str]:
     try:
         image = _normalize(data, 400, quality=80)
     except HTTPException:
-        return "中性色", "#A59F95"
+        return "Neutral", "#A59F95"
     # Focus on the centre of the frame: garment photos are usually centred,
     # while the border is often background/wall/floor and would otherwise
     # dominate the palette.
@@ -215,25 +220,25 @@ def dominant_color(data: bytes) -> tuple[str, str]:
 
 def _nearest_color_name(r: int, g: int, b: int) -> str:
     named = {
-        "黑色": (25, 25, 25),
-        "炭灰": (78, 78, 76),
-        "雾灰": (160, 160, 154),
-        "米白": (238, 232, 218),
-        "纯白": (250, 250, 247),
-        "奶油": (226, 209, 173),
-        "驼色": (181, 144, 104),
-        "焦糖": (137, 85, 52),
-        "酒红": (110, 35, 45),
-        "砖红": (181, 80, 60),
-        "橘棕": (198, 108, 58),
-        "柠檬黄": (219, 211, 92),
-        "橄榄绿": (93, 104, 68),
-        "松针绿": (45, 74, 58),
-        "雾蓝": (124, 150, 166),
-        "海军蓝": (35, 52, 84),
-        "薰衣草": (168, 150, 186),
-        "裸粉": (220, 184, 177),
-        "牛仔蓝": (77, 111, 145),
+        "Black": (25, 25, 25),
+        "Charcoal": (78, 78, 76),
+        "Mist Grey": (160, 160, 154),
+        "Ivory": (238, 232, 218),
+        "White": (250, 250, 247),
+        "Cream": (226, 209, 173),
+        "Camel": (181, 144, 104),
+        "Caramel": (137, 85, 52),
+        "Burgundy": (110, 35, 45),
+        "Brick Red": (181, 80, 60),
+        "Rust": (198, 108, 58),
+        "Lemon": (219, 211, 92),
+        "Olive": (93, 104, 68),
+        "Pine Green": (45, 74, 58),
+        "Slate Blue": (124, 150, 166),
+        "Navy": (35, 52, 84),
+        "Lavender": (168, 150, 186),
+        "Blush": (220, 184, 177),
+        "Denim Blue": (77, 111, 145),
     }
     best = min(
         named.items(),

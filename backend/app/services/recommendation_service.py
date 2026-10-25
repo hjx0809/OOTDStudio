@@ -131,7 +131,7 @@ def _valid_ai_outfits(
             continue
         seen_sets.add(key)
 
-        title = str(entry.get("title") or "").strip()[:24] or "明日造型"
+        title = str(entry.get("title") or "").strip()[:24] or "Tomorrow's Edit"
         rationale = str(entry.get("rationale") or "").strip()
         if len(rationale) < 12:
             continue
@@ -173,7 +173,7 @@ def _valid_ai_outfits(
                 score=score,
                 items=selected,
                 roles={
-                    item.id: str(roles.get(item.id) or CATEGORY_LABELS.get(item.category, "单品"))[:20]
+                    item.id: str(roles.get(item.id) or CATEGORY_LABELS.get(item.category, "Piece"))[:20]
                     for item in selected
                 },
                 missing_categories=missing,
@@ -219,7 +219,7 @@ def _validate_ai_suggestions(data: dict[str, Any]) -> tuple[list[dict[str, Any]]
             {
                 "category": category,
                 "title": title[:120],
-                "reason": reason[:300] or "补齐这件单品能让造型更完整。",
+                "reason": reason[:300] or "Adding this piece will make the outfit more complete.",
                 "priority": priority,
                 "search_query": query[:120],
             }
@@ -316,9 +316,9 @@ def _prepare_plan(
         plan.warnings.append(
             {
                 "code": "forced_unavailable",
-                "message": "必穿清单中的 "
-                + "、".join(f"「{item.name}」" for item in unavailable_forced[:3])
-                + " 已标记为不可用，本次没有加入造型。",
+                "message": "These always-wear items are marked unavailable and were left out: "
+                + ", ".join(f"{item.name}" for item in unavailable_forced[:3])
+                + ". Make them available and try again.",
                 "severity": "warning",
             }
         )
@@ -361,8 +361,6 @@ def queue_recommendation(
         occasion=request.occasion,
         occasion_type=request.occasion_type,
         weather=request.weather.model_dump(),
-        background_mode=request.background_mode,
-        background_prompt=request.background_prompt,
         forced_item_ids=request.forced_item_ids,
         status="planning",
         ai_source="atelier",
@@ -411,7 +409,7 @@ def _save_plan(
             image_error = None
         else:
             image_status = "unavailable"
-            image_error = "补齐完整造型后即可生成试穿图"
+            image_error = "Complete the outfit to generate a try-on image"
         outfit = Outfit(
             recommendation_id=recommendation.id,
             title=planned.title,
@@ -425,8 +423,6 @@ def _save_plan(
             warnings=planned.warnings,
             image_status=image_status,
             image_error=image_error,
-            background_mode=request.background_mode,
-            background_prompt=request.background_prompt,
         )
         db.add(outfit)
         if renderable:
@@ -453,7 +449,7 @@ def run_generation(recommendation_id: str, outfit_count: int = 3) -> None:
             recommendation.warnings = [
                 {
                     "code": "generation_failed",
-                    "message": "账户信息暂时不可用，请重新登录后再试。",
+                    "message": "Your account information is temporarily unavailable. Please sign in again.",
                     "severity": "critical",
                 }
             ]
@@ -469,8 +465,6 @@ def run_generation(recommendation_id: str, outfit_count: int = 3) -> None:
                 occasion=recommendation.occasion,
                 occasion_type=recommendation.occasion_type,
                 weather=WeatherSnapshot.model_validate(recommendation.weather or {}),
-                background_mode=recommendation.background_mode,
-                background_prompt=recommendation.background_prompt,
                 forced_item_ids=recommendation.forced_item_ids or [],
                 outfit_count=max(1, min(4, outfit_count)),
             )
@@ -481,7 +475,7 @@ def run_generation(recommendation_id: str, outfit_count: int = 3) -> None:
             recommendation.warnings = [
                 {
                     "code": "generation_failed",
-                    "message": "这组造型没有生成成功，请回到造型页重试。",
+                    "message": "We couldn't generate these outfits. Please return to the styling page and try again.",
                     "severity": "critical",
                 }
             ]
@@ -500,34 +494,7 @@ def run_generation(recommendation_id: str, outfit_count: int = 3) -> None:
         submit_render(outfit_id)
 
 
-def rerender_outfit(
-    db: Session,
-    user: User,
-    outfit: Outfit,
-    background_mode: str,
-    background_prompt: str | None,
-) -> bool:
-    """Update background choice and queue a render. Returns True when queued."""
-    recommendation = db.get(Recommendation, outfit.recommendation_id)
-    if recommendation is None or recommendation.user_id != user.id:
-        return False
-    snapshot = outfit.items_snapshot or []
-    categories = {item.get("category") for item in snapshot}
-    if not categories & {"top", "dress"} or "shoes" not in categories:
-        outfit.image_status = "unavailable"
-        outfit.image_error = "补齐完整造型后即可生成试穿图"
-        db.commit()
-        return False
-    outfit.background_mode = background_mode
-    outfit.background_prompt = background_prompt
-    outfit.image_status = "generating"
-    outfit.image_error = None
-    db.commit()
-    return True
-
-
 __all__ = [
     "queue_recommendation",
-    "rerender_outfit",
     "run_generation",
 ]

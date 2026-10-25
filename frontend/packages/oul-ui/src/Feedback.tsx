@@ -4,7 +4,7 @@ import { cn } from './utils'
 export function Spinner({ size = 'md', label }: { size?: 'sm' | 'md' | 'lg'; label?: string }) {
   return (
     <span className={cn('o-spinner', `o-spinner--${size}`)} role="status">
-      <span className="o-sr-only">{label ?? '加载中'}</span>
+      <span className="o-sr-only">{label ?? 'Loading'}</span>
     </span>
   )
 }
@@ -53,7 +53,7 @@ export function Avatar({ src, name, size = 'md', className }: AvatarProps) {
   return (
     <span className={cn('o-avatar', `o-avatar--${size}`, className)}>
       {src ? (
-        <img src={src} alt={`${name} 的照片`} loading="lazy" />
+        <img src={src} alt={`Photo of ${name}`} loading="lazy" />
       ) : (
         <span aria-hidden="true">{initials}</span>
       )}

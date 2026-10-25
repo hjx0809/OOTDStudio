@@ -34,14 +34,14 @@ export function useWeather(user: User | null) {
     staleTime: 15 * 60 * 1000,
     retry: 1,
     queryFn: async () => {
-      if (!user) throw new ApiError('尚未登录', 401)
+      if (!user) throw new ApiError('You’re not signed in', 401)
       if (user.latitude !== null && user.longitude !== null) {
         return api.weather.tomorrow(user.latitude, user.longitude, user.city)
       }
-      if (!user.city) throw new ApiError('还没有设置城市', 400)
+      if (!user.city) throw new ApiError('No city set yet', 400)
       const matches = await api.weather.geocode(user.city)
       if (!matches.length) {
-        throw new ApiError(`没有找到「${user.city}」，请检查城市名称`, 404)
+        throw new ApiError(`Couldn’t find “${user.city}” — double-check the city name`, 404)
       }
       const match = matches[0]
       return api.weather.tomorrow(match.latitude, match.longitude, user.city)

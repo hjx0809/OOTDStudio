@@ -92,20 +92,13 @@ def test_garment_analysis_shape(monkeypatch):
     assert len(call["contents"]) == 2
 
 
-def test_local_scene_changes_with_background_prompt():
-    from app.services.local_scene import render_scene
+def test_lookboard_renders_pure_white_background():
+    from app.services.lookboard import render_background
 
-    studio = render_scene("studio", None, (420, 560))
-    city = render_scene("custom", "傍晚城市屋顶，远处灯光轻微虚化", (420, 560))
-    gallery = render_scene("custom", "安静的画廊白墙与自然天光", (420, 560))
+    background = render_background((420, 560))
 
-    assert studio.size == city.size == gallery.size == (420, 560)
-    assert city.tobytes() != gallery.tobytes()
-    assert city.tobytes() != studio.tobytes()
-    # The custom city scene should be visibly darker than the gallery scene.
-    from PIL import ImageStat
-
-    assert ImageStat.Stat(city.convert("L")).mean[0] < ImageStat.Stat(gallery.convert("L")).mean[0]
+    assert background.size == (420, 560)
+    assert background.convert("L").getextrema() == (255, 255)
 
 
 def test_gemini_sdk_http_roundtrip_for_image_generation(monkeypatch):
@@ -154,7 +147,7 @@ def test_gemini_sdk_http_roundtrip_for_image_generation(monkeypatch):
                 "candidatesTokenCount": 8,
                 "totalTokenCount": 28,
             },
-            "modelVersion": "gemini-2.5-flash-image",
+            "modelVersion": "gemini-3.1-flash-image",
         }
         return httpx.Response(200, json=payload)
 
@@ -175,7 +168,7 @@ def test_gemini_sdk_http_roundtrip_for_image_generation(monkeypatch):
     assert mime == "image/png"
     assert data == png.getvalue()
     request = seen[0]
-    assert "gemini-2.5-flash-image:generateContent" in str(request.url)
+    assert f"{settings.gemini_image_model}:generateContent" in str(request.url)
     body = json.loads(request.content)
     assert body["generationConfig"]["responseModalities"] == ["IMAGE", "TEXT"]
     assert body["generationConfig"]["imageConfig"]["aspectRatio"] == "3:4"
@@ -186,7 +179,11 @@ def test_gemini_sdk_http_roundtrip_for_image_generation(monkeypatch):
     assert "Preserve identity" in parts[-1]["text"]
 
 
-def test_lookboard_rendering_uses_custom_background_prompt():
+def test_lookboard_renders_on_white_background():
+    from io import BytesIO
+
+    from PIL import Image
+
     from app.db.models import Outfit, Recommendation, User
     from app.services.renderer import _render_lookboard
 
@@ -204,9 +201,9 @@ def test_lookboard_rendering_uses_custom_background_prompt():
         occasion="明天去城市里看展",
         occasion_type="date",
         weather={"condition": "多云", "apparent_temp": 19},
-        background_mode="studio",
     )
-    base = dict(
+    outfit = Outfit(
+        id="look",
         recommendation_id=recommendation.id,
         title="城市微光",
         rationale="用于测试渲染的背景。",
@@ -216,24 +213,10 @@ def test_lookboard_rendering_uses_custom_background_prompt():
         missing_categories=[],
         warnings=[],
     )
-    studio = Outfit(**base, id="studio", background_mode="studio")
-    city = Outfit(
-        **base,
-        id="city",
-        background_mode="custom",
-        background_prompt="傍晚城市屋顶，远处灯光轻微虚化",
-    )
-    gallery = Outfit(
-        **base,
-        id="gallery",
-        background_mode="custom",
-        background_prompt="安静的画廊白墙与自然天光",
-    )
 
-    studio_bytes = _render_lookboard(studio, recommendation, user, [])
-    city_bytes = _render_lookboard(city, recommendation, user, [])
-    gallery_bytes = _render_lookboard(gallery, recommendation, user, [])
+    image_bytes = _render_lookboard(outfit, recommendation, user, [])
 
-    assert studio_bytes.startswith(b"\xff\xd8")
-    assert city_bytes != studio_bytes
-    assert city_bytes != gallery_bytes
+    assert image_bytes.startswith(b"\xff\xd8")
+    with Image.open(BytesIO(image_bytes)) as image:
+        corner = image.convert("RGB").getpixel((5, 5))
+    assert all(channel >= 250 for channel in corner)

@@ -49,9 +49,9 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     })
   } catch (error) {
     if (error instanceof DOMException && error.name === 'TimeoutError') {
-      throw new ApiError('请求超时了，请检查网络后重试', 0)
+      throw new ApiError('The request timed out. Check your connection and try again.', 0)
     }
-    throw new ApiError('无法连接服务器，请看网络是否正常', 0)
+    throw new ApiError('Couldn’t reach the server. Check your connection.', 0)
   }
 
   if (response.status === 204) return undefined as T
@@ -67,7 +67,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
         ? String((body as { detail: unknown }).detail)
         : typeof body === 'string' && body
           ? body
-          : '请求没有完成，请稍后重试'
+          : 'That request didn’t go through. Please try again.'
     if (response.status === 401 && !skipAuthEvent && token) {
       tokenStore.clear()
       window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT))
@@ -293,20 +293,6 @@ export const api = {
         method: 'POST',
         timeoutMs: 120_000,
       })
-    },
-    render(
-      recommendationId: string,
-      outfitId: string,
-      background_mode: 'studio' | 'custom',
-      background_prompt?: string | null,
-    ) {
-      return request<Recommendation>(
-        `/recommendations/${recommendationId}/outfits/${outfitId}/render`,
-        {
-          method: 'POST',
-          body: JSON.stringify({ background_mode, background_prompt }),
-        },
-      )
     },
     remove(id: string) {
       return request<void>(`/recommendations/${id}`, { method: 'DELETE' })

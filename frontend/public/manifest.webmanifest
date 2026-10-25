@@ -1,8 +1,8 @@
 {
-  "name": "OUL Studio — 明日造型",
+  "name": "OUL Studio — Tomorrow's Look",
   "short_name": "OUL",
-  "description": "从你自己的衣橱出发，根据明天的天气、场景与身体参数生成造型，并用 AI 试穿。",
-  "lang": "zh-CN",
+  "description": "Build tomorrow's look from your own wardrobe, tuned to the weather, the occasion, and your body profile, then try it on with AI.",
+  "lang": "en",
   "dir": "ltr",
   "start_url": "/",
   "scope": "/",
@@ -33,14 +33,14 @@
   ],
   "shortcuts": [
     {
-      "name": "开始明天的造型",
-      "short_name": "开始造型",
+      "name": "Start tomorrow's look",
+      "short_name": "Start styling",
       "url": "/style",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "我的衣橱",
-      "short_name": "衣橱",
+      "name": "My wardrobe",
+      "short_name": "Wardrobe",
       "url": "/wardrobe",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }

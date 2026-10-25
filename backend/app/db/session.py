@@ -51,7 +51,34 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
+def _drop_retired_columns() -> None:
+    """Drop columns left behind by removed features on existing SQLite files.
+
+    ``create_all`` only creates missing tables, so a database created while the
+    background feature existed keeps NOT NULL columns that new inserts no
+    longer populate.
+    """
+    if not settings.database_url.startswith("sqlite"):
+        return
+    retired = {
+        "recommendations": ("background_mode", "background_prompt"),
+        "outfits": ("background_mode", "background_prompt"),
+    }
+    with engine.begin() as connection:
+        for table, columns in retired.items():
+            present = {
+                row[1]
+                for row in connection.exec_driver_sql(f"PRAGMA table_info({table})")
+            }
+            for column in columns:
+                if column in present:
+                    connection.exec_driver_sql(
+                        f"ALTER TABLE {table} DROP COLUMN {column}"
+                    )
+
+
 def init_db() -> None:
     from app.db import models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
+    _drop_retired_columns()

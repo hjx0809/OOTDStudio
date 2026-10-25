@@ -1,4 +1,4 @@
-"""Recommendation creation, polling, history and per-look re-rendering."""
+"""Recommendation creation, polling, history and deletion."""
 
 from __future__ import annotations
 
@@ -10,19 +10,15 @@ from sqlalchemy.orm import selectinload
 
 from app.api.serializers import serialize_recommendation, serialize_summary
 from app.core.security import CurrentUser, DbSession, get_token_from_request
-from app.db.models import Outfit, Recommendation
+from app.db.models import Recommendation
 from app.schemas.recommendation import (
     CreateRecommendationRequest,
     RecommendationRead,
     RecommendationSummary,
-    RenderImageRequest,
     WeatherSnapshot,
 )
-from app.services.jobs import submit_generation, submit_render
-from app.services.recommendation_service import (
-    queue_recommendation,
-    rerender_outfit,
-)
+from app.services.jobs import submit_generation
+from app.services.recommendation_service import queue_recommendation
 from app.services.storage import delete_stored_image, thumbnail_path_for
 
 router = APIRouter(prefix="/recommendations", tags=["recommendations"])
@@ -39,7 +35,7 @@ def _own_recommendation(db: DbSession, user_id: str, recommendation_id: str) -> 
     )
     recommendation = db.scalar(statement)
     if recommendation is None:
-        raise HTTPException(status_code=404, detail="找不到这条造型推荐")
+        raise HTTPException(status_code=404, detail="Recommendation not found")
     return recommendation
 
 
@@ -57,10 +53,12 @@ def create(
     if not user.onboarding_completed:
         raise HTTPException(
             status_code=409,
-            detail="请先完成身体参数与基础照片设置",
+            detail="Please complete your body profile and base photo first",
         )
     if not user.base_photo_path:
-        raise HTTPException(status_code=409, detail="请先上传一张全身基础照片")
+        raise HTTPException(
+            status_code=409, detail="Please upload a full-body base photo first"
+        )
     # Return a pending recommendation straight away; planning and rendering
     # run in the background so navigating away never cancels them.
     recommendation = queue_recommendation(db, user, payload)
@@ -111,60 +109,24 @@ def reroll(
     db: DbSession,
 ) -> RecommendationRead:
     if not user.onboarding_completed:
-        raise HTTPException(status_code=409, detail="请先完成身体参数与基础照片设置")
+        raise HTTPException(status_code=409, detail="Please complete your body profile and base photo first")
     original = _own_recommendation(db, user.id, recommendation_id)
     try:
         weather = WeatherSnapshot.model_validate(original.weather or {})
     except Exception as exc:
         raise HTTPException(
-            status_code=409, detail="这条推荐缺少可复用的天气信息，请重新开始造型"
+            status_code=409,
+            detail="This recommendation is missing reusable weather data. Please start a new styling session.",
         ) from exc
     payload = CreateRecommendationRequest(
         occasion=original.occasion,
         occasion_type=original.occasion_type,
         weather=weather,
-        background_mode=original.background_mode if original.background_mode in {"studio", "custom"} else "studio",
-        background_prompt=original.background_prompt,
         forced_item_ids=[],
         outfit_count=max(1, min(4, len(original.outfits) or 3)),
     )
     recommendation = queue_recommendation(db, user, payload)
     submit_generation(recommendation.id, payload.outfit_count)
-    db.refresh(recommendation)
-    return serialize_recommendation(
-        recommendation, db, get_token_from_request(request) or ""
-    )
-
-
-@router.post(
-    "/{recommendation_id}/outfits/{outfit_id}/render",
-    response_model=RecommendationRead,
-)
-def render_outfit(
-    recommendation_id: str,
-    outfit_id: str,
-    payload: RenderImageRequest,
-    user: CurrentUser,
-    request: Request,
-    db: DbSession,
-) -> RecommendationRead:
-    recommendation = _own_recommendation(db, user.id, recommendation_id)
-    outfit = db.get(Outfit, outfit_id)
-    if outfit is None or outfit.recommendation_id != recommendation.id:
-        raise HTTPException(status_code=404, detail="找不到这套造型")
-    if outfit.image_status == "generating":
-        return serialize_recommendation(
-            recommendation, db, get_token_from_request(request) or ""
-        )
-    queued = rerender_outfit(
-        db,
-        user,
-        outfit,
-        payload.background_mode,
-        payload.background_prompt,
-    )
-    if queued:
-        submit_render(outfit.id)
     db.refresh(recommendation)
     return serialize_recommendation(
         recommendation, db, get_token_from_request(request) or ""

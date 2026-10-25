@@ -13,13 +13,13 @@ ItemCategory = Literal[
 Season = Literal["spring", "summer", "autumn", "winter"]
 
 CATEGORY_LABELS: dict[str, str] = {
-    "top": "上装",
-    "bottom": "下装",
-    "dress": "连衣裙 / 连体",
-    "outerwear": "外套",
-    "shoes": "鞋履",
-    "bag": "包袋",
-    "accessory": "配饰",
+    "top": "Top",
+    "bottom": "Bottom",
+    "dress": "Dress / Jumpsuit",
+    "outerwear": "Outerwear",
+    "shoes": "Shoes",
+    "bag": "Bag",
+    "accessory": "Accessory",
 }
 
 

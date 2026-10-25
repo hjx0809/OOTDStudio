@@ -98,7 +98,7 @@ def create_app() -> FastAPI:
     @app.exception_handler(RequestValidationError)
     async def validation_handler(request: Request, exc: RequestValidationError):
         first = exc.errors()[0] if exc.errors() else None
-        message = "提交的信息不完整或格式不正确"
+        message = "The submitted information is incomplete or invalid"
         if first:
             raw = str(first.get("msg") or "").removeprefix("Value error, ")
             location = ".".join(
@@ -107,14 +107,15 @@ def create_app() -> FastAPI:
             if raw:
                 message = raw
             elif location:
-                message = f"请检查 {location}"
+                message = f"Please check {location}"
         return JSONResponse(status_code=422, content={"detail": message})
 
     @app.exception_handler(Exception)
     async def unhandled_handler(request: Request, exc: Exception):
         logger.exception("Unhandled error at %s", request.url.path)
         return JSONResponse(
-            status_code=500, content={"detail": "服务暂时开小差了，请稍后重试"}
+            status_code=500,
+            content={"detail": "Something went wrong on our side. Please try again shortly."},
         )
 
     for router in (
@@ -150,7 +151,7 @@ def _mount_frontend(app: FastAPI) -> None:
         @app.get("/{full_path:path}", include_in_schema=False)
         async def spa(full_path: str):
             if full_path.startswith("api/"):
-                raise HTTPException(status_code=404, detail="接口不存在")
+                raise HTTPException(status_code=404, detail="Not found")
             if full_path:
                 candidate = (dist / full_path).resolve()
                 try:

@@ -27,22 +27,22 @@ export function GenerationIndicator() {
   const ready =
     data?.outfits.filter((outfit) => outfit.image_status === 'ready').length ?? 0
   const label = planning
-    ? '正在挑选明天的造型'
+    ? "Picking tomorrow's look"
     : active.kind === 'render'
-      ? '正在重新生成试穿图'
-      : '正在生成试穿图'
+      ? 'Refreshing your try-on'
+      : 'Creating your try-on'
   const detail = planning
-    ? '可以先去做别的，生成会在后台继续'
+    ? 'Feel free to browse — this keeps running in the background'
     : total > 0
-      ? `${ready} / ${total} 张完成`
-      : '马上就好'
+      ? `${ready} of ${total} ready`
+      : 'Almost there'
 
   return (
     <button
       type="button"
       className="generation-indicator"
       onClick={() => navigate(`/looks/${active.id}`)}
-      aria-label={`${label}，${detail}，点击查看`}
+      aria-label={`${label}, ${detail}. Tap to view.`}
     >
       <span className="generation-indicator__spinner">
         <Spinner size="sm" />

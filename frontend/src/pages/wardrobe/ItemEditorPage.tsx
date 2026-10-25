@@ -40,8 +40,8 @@ import {
   TextField,
 } from 'oul-ui'
 
-const FORMALITY_LABELS = ['居家', '休闲', '通勤', '正式', '礼服']
-const WARMTH_LABELS = ['极轻', '轻薄', '适中', '保暖', '厚重']
+const FORMALITY_LABELS = ['Loungewear', 'Casual', 'Workwear', 'Formal', 'Black tie']
+const WARMTH_LABELS = ['Ultra light', 'Light', 'Medium', 'Warm', 'Heavy']
 
 function ValueScale({
   value,
@@ -139,20 +139,20 @@ function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
         }
         return updated
       }
-      if (!imageBlob) throw new ApiError('请先为这件单品拍一张照片', 422)
+      if (!imageBlob) throw new ApiError('Add a photo of this item first', 422)
       return api.wardrobe.create(payload, imageBlob, imageName)
     },
     onSuccess: (saved) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.wardrobe })
       queryClient.invalidateQueries({ queryKey: queryKeys.wardrobeSummary })
-      toast.success(editing ? '单品已更新' : '单品已放进衣橱', saved.name)
+      toast.success(editing ? 'Item updated' : 'Item added to your wardrobe', saved.name)
       navigate('/wardrobe', { replace: true })
     },
     onError: (requestError) => {
       setError(
         requestError instanceof ApiError
           ? requestError.message
-          : '保存没有完成，请稍后再试',
+          : "Couldn't save. Please try again.",
       )
     },
   })
@@ -162,10 +162,10 @@ function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.wardrobe })
       queryClient.invalidateQueries({ queryKey: queryKeys.wardrobeSummary })
-      toast.success('已从衣橱移除')
+      toast.success('Removed from your wardrobe')
       navigate('/wardrobe', { replace: true })
     },
-    onError: () => toast.error('删除没有完成，请重试'),
+    onError: () => toast.error("Couldn't delete. Try again."),
   })
 
   const analyze = async (blob: Blob, filename: string) => {
@@ -182,18 +182,18 @@ function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
       if (result.seasons?.length) setSeasons(result.seasons)
       if (result.style_tags?.length) setStyleTags(result.style_tags)
       if (result.subcategory) setSubcategory(result.subcategory)
-      if (result.material && result.material !== '未知') setMaterial(result.material)
+      if (result.material && result.material.toLowerCase() !== 'unknown') setMaterial(result.material)
       if (result.name && !nameEdited.current) {
         setName(result.name)
       }
-      toast.success('照片已读取', result.available ? 'AI 已填好能识别的信息，可继续微调。' : '已提取主色，请补充分类。')
+      toast.success('Photo scanned', result.available ? 'AI filled in what it could — adjust anything you like.' : 'Main color captured. Please add the category.')
     } catch (requestError) {
       setAnalysis({
         available: false,
         reason:
           requestError instanceof ApiError
             ? requestError.message
-            : '暂时无法自动识别，请手动填写。',
+            : "We couldn't read this photo automatically. Please fill it in manually.",
         name: null,
         category: null,
         subcategory: null,
@@ -230,7 +230,7 @@ function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
   return (
     <div className="editor-page">
       <PageHeader
-        title={editing ? '编辑单品' : '添加单品'}
+        title={editing ? 'Edit item' : 'Add item'}
         eyebrow={editing ? 'WARDROBE PIECE' : 'NEW WARDROBE PIECE'}
         backTo="/wardrobe"
       />
@@ -238,9 +238,9 @@ function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
       <div className="editor-page__intro">
         <p className="o-eyebrow">CAPTURE THE REAL PIECE</p>
         <h1>
-          {editing ? '让这件单品更准确。' : '拍下你真正会穿的那一件。'}
+          {editing ? 'Make this item more accurate.' : 'Photograph the one you actually wear.'}
         </h1>
-        <p>背景不用完美。看得清颜色、版型和材质，就足够开始。</p>
+        <p>The background doesn't need to be perfect. If the color, cut and fabric read clearly, that's enough.</p>
       </div>
 
       {error && (
@@ -252,8 +252,8 @@ function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
       <div className="editor-image-block">
         <ImagePicker
           previewUrl={preview}
-          title={editing ? '替换单品照片' : '为这件单品拍照'}
-          subtitle="平铺、挂拍或穿着拍摄都可以；避免多人入镜"
+          title={editing ? 'Replace item photo' : 'Photograph this item'}
+          subtitle="Flat lay, on a hanger or worn — all fine. Just keep other people out of frame."
           aspect="square"
           variant="garment"
           onSelect={(blob, filename, previewUrl) => {
@@ -268,17 +268,17 @@ function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
             <span className="ai-reader__icon">
               {analyzing ? <span className="o-spinner o-spinner--sm" /> : <WandSparkles size={18} />}
             </span>
-            <strong>{analyzing ? '正在读取细节' : 'AI 衣橱助理'}</strong>
+            <strong>{analyzing ? 'Reading the details' : 'AI wardrobe assistant'}</strong>
             <p>
               {analyzing
-                ? '识别品类、颜色与正式度…'
-                : '上传后自动建议分类、颜色和正式度，你随时可以改。'}
+                ? 'Detecting category, color and formality…'
+                : "Upload a photo and we'll suggest category, color and formality. You can change anything."}
             </p>
           </div>
           {analysis && (
             <p className={cn('ai-result', analysis.available ? 'is-success' : 'is-neutral')}>
               {analysis.available ? <Check size={13} /> : <Sparkles size={13} />}
-              {analysis.available ? '已自动填写，可继续微调' : analysis.reason}
+              {analysis.available ? 'Auto-filled — adjust as needed' : analysis.reason}
             </p>
           )}
         </div>
@@ -287,12 +287,12 @@ function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
       <section className="editor-section">
         <div className="editor-section__head">
           <span className="editor-section__index">01</span>
-          <h2>基本信息</h2>
+          <h2>The basics</h2>
         </div>
 
         <div className="editor-section__body">
           <div className="form-field-block">
-            <span className="o-field__label">分类</span>
+            <span className="o-field__label">Category</span>
             <div className="category-picker">
               {CATEGORY_OPTIONS.map((option) => (
                 <button
@@ -311,8 +311,8 @@ function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
           </div>
 
           <TextField
-            label="单品名称"
-            placeholder="例如：炭灰羊毛西装外套"
+            label="Item name"
+            placeholder="e.g. Charcoal wool blazer"
             value={name}
             maxLength={120}
             onChange={(event) => {
@@ -324,16 +324,16 @@ function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
 
           <div className="form-row">
             <TextField
-              label="子类"
-              placeholder="衬衫 / 直筒裤"
+              label="Subcategory"
+              placeholder="Shirt / straight-leg trousers"
               value={subcategory}
               maxLength={80}
               onChange={(event) => setSubcategory(event.target.value)}
               optional
             />
             <TextField
-              label="品牌"
-              placeholder="不填也可以"
+              label="Brand"
+              placeholder="Optional"
               value={brand}
               maxLength={80}
               onChange={(event) => setBrand(event.target.value)}
@@ -343,21 +343,21 @@ function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
 
           <div className="color-field-row">
             <TextField
-              label="颜色名称"
-              placeholder="例如：炭灰"
+              label="Color name"
+              placeholder="e.g. Charcoal"
               value={colorName}
               maxLength={60}
               onChange={(event) => setColorName(event.target.value)}
               optional
             />
             <label className="color-swatch-field">
-              <span>主色</span>
+              <span>Main color</span>
               <span className="color-swatch-field__control">
                 <input
                   type="color"
                   value={colorHex || '#8C8C84'}
                   onChange={(event) => setColorHex(event.target.value.toUpperCase())}
-                  aria-label="选择单品主色"
+                  aria-label="Choose the item's main color"
                 />
                 <em>{colorHex || '#8C8C84'}</em>
               </span>
@@ -365,8 +365,8 @@ function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
           </div>
 
           <TextField
-            label="材质"
-            placeholder="羊毛 / 棉 / 皮革…"
+            label="Material"
+            placeholder="Wool / cotton / leather…"
             value={material}
             maxLength={80}
             onChange={(event) => setMaterial(event.target.value)}
@@ -378,22 +378,22 @@ function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
       <section className="editor-section">
         <div className="editor-section__head">
           <span className="editor-section__index">02</span>
-          <h2>正式度与保暖</h2>
+          <h2>Formality and warmth</h2>
         </div>
         <div className="editor-section__body">
           <ValueScale
-            title="正式度"
+            title="Formality"
             value={formality}
             onChange={setFormality}
             labels={FORMALITY_LABELS}
-            hint="用于判断是否能覆盖面试、通勤或周末等场景。"
+            hint="Helps us judge whether it works for interviews, the office or weekends."
           />
           <ValueScale
-            title="保暖度"
+            title="Warmth"
             onChange={setWarmth}
             value={warmth}
             labels={WARMTH_LABELS}
-            hint="不是越厚越好，刚刚适合明天的体感才是。"
+            hint="Thicker isn't better — right for tomorrow's feels-like temperature is."
           />
         </div>
       </section>
@@ -401,11 +401,11 @@ function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
       <section className="editor-section">
         <div className="editor-section__head">
           <span className="editor-section__index">03</span>
-          <h2>季节与风格</h2>
+          <h2>Season and style</h2>
         </div>
         <div className="editor-section__body">
           <div className="form-field-block">
-            <span className="o-field__label">适合季节</span>
+            <span className="o-field__label">Seasons</span>
             <div className="chip-wrap">
               {SEASON_OPTIONS.map((season) => (
                 <Chip
@@ -419,7 +419,7 @@ function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
             </div>
           </div>
           <div className="form-field-block">
-            <span className="o-field__label">风格标签</span>
+            <span className="o-field__label">Style tags</span>
             <div className="chip-wrap">
               {STYLE_OPTIONS.map((style) => (
                 <Chip
@@ -431,11 +431,11 @@ function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
                 </Chip>
               ))}
             </div>
-            <p className="o-field__hint">最多 6 个，帮助我们理解你如何使用它。</p>
+            <p className="o-field__hint">Up to 6 — they help us understand how you wear it.</p>
           </div>
           <TextAreaField
-            label="备注"
-            placeholder="例如：袖子略长；只适合干洗；和黑色西裤最常一起穿。"
+            label="Notes"
+            placeholder="e.g. Sleeves run long; dry clean only; most often worn with black trousers."
             value={notes}
             maxLength={1000}
             onChange={(event) => setNotes(event.target.value)}
@@ -447,7 +447,7 @@ function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
       <section className="editor-section">
         <div className="editor-section__head">
           <span className="editor-section__index">04</span>
-          <h2>使用状态</h2>
+          <h2>Availability</h2>
         </div>
         <div className="editor-section__body">
           <div className="settings-list">
@@ -457,27 +457,27 @@ function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
                 setAvailable(checked)
                 if (!checked) setForceInclude(false)
               }}
-              label="现在可穿"
-              description="清洗中、借出或暂时不想穿的单品会被排除在下一次推荐外。"
+              label="Available now"
+              description="Items in the wash, lent out or simply off-duty are left out of your next recommendation."
             />
             <Switch
               checked={forceInclude}
               onChange={setForceInclude}
-              label="下次推荐必穿"
-              description="OUL 会把这件单品加入下一组造型；如果不适合场景，会明确提示。"
+              label="Must-wear for the next look"
+              description="OUL will include this piece in your next set of looks — and will tell you if it clashes with the occasion."
               disabled={!available}
             />
             <Switch
               checked={favorite}
               onChange={setFavorite}
-              label="收藏这件单品"
-              description="收藏不会改变推荐，只用于标记你最喜欢的单品。"
+              label="Favorite this item"
+              description="Favorites don't affect recommendations — they're just a marker for the pieces you love."
             />
           </div>
           {forceInclude && (
             <InlineNotice tone="info" icon={<Lock size={16} />}>
-              必穿单品会同时出现在下一组造型里。若与天气或场合冲突，OUL
-              会保留单品并给出调整建议。
+              Must-wear pieces appear in your next set of looks. If one clashes with the
+              weather or occasion, OUL keeps it in and suggests how to make it work.
             </InlineNotice>
           )}
         </div>
@@ -486,14 +486,14 @@ function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
       {editing && (
         <button type="button" className="danger-row" onClick={() => setDeleteOpen(true)}>
           <Trash2 size={16} />
-          从衣橱移除这件单品
+          Remove this item from your wardrobe
         </button>
       )}
 
       <footer className="editor-footer">
         <div className="editor-footer__meta">
           {favorite ? <Heart size={13} fill="currentColor" /> : <Sparkles size={13} />}
-          <span>{preview ? '照片已准备好' : '还差一张单品照片'}</span>
+          <span>{preview ? 'Photo ready' : 'One photo to go'}</span>
         </div>
         <Button
           size="lg"
@@ -501,39 +501,39 @@ function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
           onClick={() => {
             setError(null)
             if (!preview) {
-              setError('请先为这件单品拍照或从相册选择')
+              setError('Photograph this item or choose one from your library first')
               window.scrollTo({ top: 0, behavior: 'smooth' })
               return
             }
             saveMutation.mutate()
           }}
         >
-          {editing ? '保存修改' : '放进衣橱'}
+          {editing ? 'Save changes' : 'Add to wardrobe'}
         </Button>
       </footer>
 
       {deleteOpen && (
-        <div className="inline-modal" role="dialog" aria-modal="true" aria-label="确认删除单品">
+        <div className="inline-modal" role="dialog" aria-modal="true" aria-label="Confirm removing item">
           <button
             type="button"
             className="inline-modal__backdrop"
-            aria-label="取消"
+            aria-label="Cancel"
             onClick={() => setDeleteOpen(false)}
           />
           <div className="inline-modal__panel">
             <p className="o-eyebrow">REMOVE FROM WARDROBE</p>
-            <h3>确定移除「{item?.name}」？</h3>
-            <p>历史造型中的这张搭配记录仍会保留，但这件单品不会再参与新的推荐。</p>
+            <h3>Remove “{item?.name}”?</h3>
+            <p>Past looks will keep this piece in their history, but it won't appear in new recommendations.</p>
             <div className="inline-modal__actions">
               <Button variant="secondary" onClick={() => setDeleteOpen(false)}>
-                再想想
+                Keep it
               </Button>
               <Button
                 variant="danger"
                 loading={deleteMutation.isPending}
                 onClick={() => deleteMutation.mutate()}
               >
-                确认移除
+                Remove
               </Button>
             </div>
           </div>
@@ -556,7 +556,7 @@ export function ItemEditorPage() {
   if (editing && itemQuery.isLoading) {
     return (
       <div className="editor-page">
-        <PageHeader title="编辑单品" backTo="/wardrobe" />
+        <PageHeader title="Edit item" backTo="/wardrobe" />
         <div className="editor-loading">
           <Skeleton className="editor-loading__image" />
           <Skeleton className="editor-loading__line" />
@@ -569,9 +569,9 @@ export function ItemEditorPage() {
   if (editing && (itemQuery.isError || !itemQuery.data)) {
     return (
       <div className="editor-page">
-        <PageHeader title="编辑单品" backTo="/wardrobe" />
+        <PageHeader title="Edit item" backTo="/wardrobe" />
         <InlineNotice tone="critical">
-          找不到这件单品，可能已从衣橱移除。
+          We couldn't find this item — it may have been removed from your wardrobe.
         </InlineNotice>
       </div>
     )

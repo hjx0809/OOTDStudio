@@ -21,14 +21,14 @@ class RegisterRequest(BaseModel):
     def clean_name(cls, value: str) -> str:
         value = " ".join(value.split())
         if not value:
-            raise ValueError("请输入你的称呼")
+            raise ValueError("Please enter your name")
         return value
 
     @field_validator("accept_terms")
     @classmethod
     def must_accept_terms(cls, value: bool) -> bool:
         if not value:
-            raise ValueError("请同意服务条款与隐私政策")
+            raise ValueError("Please accept the Terms of Service and Privacy Policy")
         return value
 
 

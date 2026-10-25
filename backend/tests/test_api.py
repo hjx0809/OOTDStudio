@@ -138,7 +138,6 @@ def recommendation_payload(forced_ids: list[str] | None = None) -> dict:
             "icon": "⛅",
             "source": "manual",
         },
-        "background_mode": "studio",
         "forced_item_ids": forced_ids or [],
         "outfit_count": 3,
     }
@@ -177,7 +176,7 @@ def test_auth_and_onboarding(client):
 
     incomplete = client.post("/api/users/me/complete-onboarding", headers=headers)
     assert incomplete.status_code == 422
-    assert "全身基础照片" in incomplete.json()["detail"]
+    assert "full-body base photo" in incomplete.json()["detail"]
 
     complete_profile(client, token)
     me = client.get("/api/users/me", headers=headers)
@@ -261,26 +260,6 @@ def test_wardrobe_and_recommendation_flow(client):
         warning["code"] == "forced_unavailable"
         for warning in reroll_payload["warnings"]
     )
-
-    # Re-render one look with a custom background.
-    first_outfit = reroll_payload["outfits"][0]
-    rendered = client.post(
-        f"/api/recommendations/{reroll_payload['id']}/outfits/{first_outfit['id']}/render",
-        headers=headers,
-        json={
-            "background_mode": "custom",
-            "background_prompt": "安静的清水混凝土庭院，柔和晨光",
-        },
-    )
-    assert rendered.status_code == 200, rendered.text
-    after_render = client.get(
-        f"/api/recommendations/{reroll_payload['id']}", headers=headers
-    ).json()
-    rendered_outfit = next(
-        outfit for outfit in after_render["outfits"] if outfit["id"] == first_outfit["id"]
-    )
-    assert rendered_outfit["background_mode"] == "custom"
-    assert rendered_outfit["image_status"] == "ready"
 
     history = client.get("/api/recommendations", headers=headers)
     assert history.status_code == 200
@@ -383,7 +362,7 @@ def test_input_validation_and_item_lifecycle(client):
         },
     )
     assert invalid.status_code == 422
-    assert "最高温度" in invalid.json()["detail"]
+    assert "maximum temperature" in invalid.json()["detail"]
 
 
 def test_garment_analysis_without_gemini(client):

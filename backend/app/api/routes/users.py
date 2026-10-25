@@ -48,11 +48,11 @@ def update_me(
 ) -> UserRead:
     updates = payload.model_dump(exclude_unset=True)
     if not updates:
-        raise HTTPException(status_code=400, detail="没有需要保存的修改")
+        raise HTTPException(status_code=400, detail="No changes to save")
     if "display_name" in updates:
         display_name = " ".join((updates["display_name"] or "").split())
         if not display_name:
-            raise HTTPException(status_code=422, detail="称呼不能为空")
+            raise HTTPException(status_code=422, detail="Name cannot be empty")
         updates["display_name"] = display_name
     if "style_preferences" in updates:
         updates["style_preferences"] = list(
@@ -100,27 +100,27 @@ def complete_onboarding(
 ) -> UserRead:
     missing: list[str] = []
     if not user.base_photo_path:
-        missing.append("全身基础照片")
+        missing.append("full-body base photo")
     if not user.height_cm:
-        missing.append("身高")
+        missing.append("height")
     if not user.weight_kg:
-        missing.append("体重")
+        missing.append("weight")
     if not user.chest_cm:
-        missing.append("胸围")
+        missing.append("chest")
     if not user.waist_cm:
-        missing.append("腰围")
+        missing.append("waist")
     if not user.hip_cm:
-        missing.append("臀围")
+        missing.append("hip")
     if not user.shoe_size:
-        missing.append("鞋码")
+        missing.append("shoe size")
     if not user.fit_preference:
-        missing.append("版型偏好")
+        missing.append("fit preference")
     if not user.style_preferences:
-        missing.append("风格偏好")
+        missing.append("style preferences")
     if missing:
         raise HTTPException(
             status_code=422,
-            detail="还需要填写：" + "、".join(missing),
+            detail="Please fill in: " + ", ".join(missing),
         )
     user.onboarding_completed = True
     db.commit()
@@ -133,12 +133,14 @@ def change_password(
     payload: PasswordChangeRequest, user: CurrentUser, db: DbSession
 ) -> MessageResponse:
     if not verify_password(payload.current_password, user.password_hash):
-        raise HTTPException(status_code=400, detail="当前密码不正确")
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
     if payload.current_password == payload.new_password:
-        raise HTTPException(status_code=422, detail="新密码不能与当前密码相同")
+        raise HTTPException(
+            status_code=422, detail="The new password must differ from the current one"
+        )
     user.password_hash = hash_password(payload.new_password)
     db.commit()
-    return MessageResponse(message="密码已更新")
+    return MessageResponse(message="Password updated")
 
 
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
@@ -146,7 +148,9 @@ def delete_account(
     payload: DeleteAccountRequest, user: CurrentUser, db: DbSession
 ) -> None:
     if not verify_password(payload.password, user.password_hash):
-        raise HTTPException(status_code=400, detail="密码不正确，账户未删除")
+        raise HTTPException(
+            status_code=400, detail="Incorrect password. Your account was not deleted."
+        )
     settings = get_settings()
     user_id = user.id
     user_root = (settings.upload_dir / user_id).resolve()
