@@ -32,11 +32,11 @@ export function ImagePicker({
   const processFile = async (file: File) => {
     setError(null)
     if (!ACCEPTED.includes(file.type)) {
-      setError('Please upload a JPG, PNG, WebP, or HEIC photo')
+      setError('Use a JPG, PNG, WebP or HEIC photo')
       return
     }
     if (file.size > MAX_BYTES) {
-      setError(`Photos can be up to 12 MB — this one is ${formatFileSize(file.size)}`)
+      setError(`Max 12 MB — this one is ${formatFileSize(file.size)}`)
       return
     }
     setBusy(true)
@@ -44,7 +44,7 @@ export function ImagePicker({
       const result = await compressImage(file, variant === 'base' ? 2000 : 1600, 0.9)
       onSelect(result.blob, result.filename, result.previewUrl)
     } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : "We couldn't process that photo")
+      setError(uploadError instanceof Error ? uploadError.message : "Couldn't read that photo")
     } finally {
       setBusy(false)
     }
@@ -57,16 +57,16 @@ export function ImagePicker({
     if (file) void processFile(file)
   }
 
+  const open = () => inputRef.current?.click()
+
   return (
     <div className="image-picker-block">
       <div
         className={cn(
           'image-picker',
           `image-picker--${aspect}`,
-          `image-picker--${variant}`,
           previewUrl && 'has-image',
           dragging && 'is-dragging',
-          busy && 'is-busy',
           disabled && 'is-disabled',
         )}
         onDragOver={(event) => {
@@ -78,42 +78,29 @@ export function ImagePicker({
       >
         {previewUrl ? (
           <>
-            <img src={previewUrl} alt="Preview of the selected photo" className="image-picker__preview" />
-            <div className="image-picker__shade" />
-            <div className="image-picker__actions">
-              <button
-                type="button"
-                className="image-picker__replace"
-                onClick={() => inputRef.current?.click()}
-                disabled={disabled || busy}
-              >
-                <Camera size={14} />
-                Change photo
-              </button>
-            </div>
-            {variant === 'base' && (
-              <div className="image-picker__corner">
-                <span />
-                Full body
-              </div>
-            )}
+            <img src={previewUrl} alt="Selected photo" className="image-picker__preview" />
+            <button
+              type="button"
+              className="image-picker__replace"
+              onClick={open}
+              disabled={disabled || busy}
+            >
+              {busy ? <span className="o-spinner o-spinner--sm" /> : <Camera size={14} />}
+              Change
+            </button>
           </>
         ) : (
           <button
             type="button"
             className="image-picker__empty"
-            onClick={() => inputRef.current?.click()}
+            onClick={open}
             disabled={disabled || busy}
           >
             <span className="image-picker__icon">
               {busy ? <span className="o-spinner" /> : <ImagePlus size={24} strokeWidth={1.6} />}
             </span>
-            <span className="image-picker__title">{busy ? 'Polishing your photo…' : title}</span>
+            <span className="image-picker__title">{title}</span>
             {subtitle && <span className="image-picker__subtitle">{subtitle}</span>}
-            <span className="image-picker__cta">
-              <Camera size={13} />
-              Take a photo or choose from library
-            </span>
           </button>
         )}
         <input
@@ -130,7 +117,7 @@ export function ImagePicker({
         />
       </div>
       {error && (
-        <p className="image-picker__error" role="alert">
+        <p className="o-field__error" role="alert">
           {error}
         </p>
       )}

@@ -30,27 +30,6 @@ export function formatDateLabel(date = new Date()): string {
   })
 }
 
-export function formatCompactDate(value: string | Date | null | undefined): string {
-  if (!value) return ''
-  const date = typeof value === 'string' ? new Date(value) : value
-  if (Number.isNaN(date.getTime())) return ''
-  return date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })
-}
-
-export function formatRelative(value: string): string {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return ''
-  const diff = Date.now() - date.getTime()
-  const minutes = Math.floor(diff / 60_000)
-  if (minutes < 1) return 'Just now'
-  if (minutes < 60) return `${minutes} min ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours} hr ago`
-  const days = Math.floor(hours / 24)
-  if (days < 7) return `${days} d ago`
-  return formatCompactDate(date)
-}
-
 export const CATEGORY_META: Record<
   Category,
   { label: string; short: string; role: string }
@@ -236,4 +215,20 @@ export function pluralLooks(count: number): string {
 
 export function getGreetingName(name: string): string {
   return name.trim().split(/\s+/)[0] || name
+}
+
+/** "Today", "Yesterday", or a short date for a server timestamp (UTC if unzoned). */
+export function formatLookDate(iso: string): string {
+  const date = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(iso) ? iso : `${iso}Z`)
+  if (Number.isNaN(date.getTime())) return ''
+  const startOfDay = (value: Date) =>
+    new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime()
+  const days = Math.round((startOfDay(new Date()) - startOfDay(date)) / 86_400_000)
+  if (days === 0) return 'Today'
+  if (days === 1) return 'Yesterday'
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    ...(date.getFullYear() !== new Date().getFullYear() && { year: 'numeric' }),
+  })
 }

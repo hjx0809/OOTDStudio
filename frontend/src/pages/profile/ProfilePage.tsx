@@ -1,46 +1,88 @@
 import { useMutation } from '@tanstack/react-query'
-import {
-  ArrowUpRight,
-  CheckCircle2,
-  ChevronRight,
-  KeyRound,
-  Lock,
-  LogOut,
-  Pencil,
-  ShieldCheck,
-  Shirt,
-  Sparkles,
-  Trash2,
-  UserRound,
-} from 'lucide-react'
+import { KeyRound, LogOut, ShieldCheck, Trash2, UserRoundPen } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/app/AuthProvider'
 import { useToast } from '@/app/ToastProvider'
-import { Brand } from '@/components/Brand'
+import { ImagePicker } from '@/components/ImagePicker'
+import { LegalCopy } from '@/pages/auth/AuthPages'
 import { api, ApiError } from '@/lib/api'
-import { useWardrobeSummary } from '@/lib/queries'
-import { useQueryClient } from '@tanstack/react-query'
-import {
-  fitLabel,
-  formatCompactDate,
-} from '@/lib/utils'
-import {
-  Avatar,
-  Badge,
-  Button,
-  InlineNotice,
-  Sheet,
-  Skeleton,
-  TextField,
-} from 'oul-ui'
+import type { User } from '@/lib/types'
+import { cn, fitLabel } from '@/lib/utils'
+import { Button, InlineNotice, List, ListRow, Sheet, TextField } from 'oul-ui'
+
+type MeasureField = 'height_cm' | 'weight_kg' | 'chest_cm' | 'waist_cm' | 'hip_cm' | 'shoe_size'
+
+interface Measure {
+  field: MeasureField
+  label: string
+  unit: string
+  min: number
+  max: number
+  integer?: boolean
+}
+
+// Ranges mirror the backend ProfileUpdate schema.
+const MEASUREMENTS: Measure[] = [
+  { field: 'height_cm', label: 'Height', unit: 'cm', min: 120, max: 230, integer: true },
+  { field: 'weight_kg', label: 'Weight', unit: 'kg', min: 30, max: 300 },
+  { field: 'chest_cm', label: 'Chest', unit: 'cm', min: 50, max: 200 },
+  { field: 'waist_cm', label: 'Waist', unit: 'cm', min: 40, max: 200 },
+  { field: 'hip_cm', label: 'Hips', unit: 'cm', min: 50, max: 220 },
+  { field: 'shoe_size', label: 'Shoe', unit: 'EU', min: 30, max: 55 },
+]
+
+function MeasureTile({
+  measure,
+  value,
+  onSave,
+}: {
+  measure: Measure
+  value: number | null
+  onSave: (value: number) => Promise<boolean>
+}) {
+  const initial = value == null ? '' : String(value)
+  const [draft, setDraft] = useState(initial)
+
+  const commit = async () => {
+    const text = draft.trim()
+    if (text === initial) return
+    const number = Number(text)
+    if (!text || !Number.isFinite(number)) {
+      setDraft(initial)
+      return
+    }
+    const saved = await onSave(measure.integer ? Math.round(number) : number)
+    if (!saved) setDraft(initial)
+  }
+
+  return (
+    <label className="measure-tile">
+      <span className="measure-tile__label">{measure.label}</span>
+      <span className="measure-tile__value">
+        <input
+          type="number"
+          inputMode="decimal"
+          placeholder="—"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={() => void commit()}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') event.currentTarget.blur()
+          }}
+        />
+        <em>{measure.unit}</em>
+      </span>
+    </label>
+  )
+}
 
 export function ProfilePage() {
-  const { user, logout } = useAuth()
+  const { user, logout, updateUser } = useAuth()
   const navigate = useNavigate()
   const toast = useToast()
-  const queryClient = useQueryClient()
-  const summaryQuery = useWardrobeSummary()
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [photoBusy, setPhotoBusy] = useState(false)
   const [passwordOpen, setPasswordOpen] = useState(false)
   const [privacyOpen, setPrivacyOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -55,28 +97,55 @@ export function ProfilePage() {
     mutationFn: () => api.users.deleteAccount(deletePassword),
     onSuccess: () => {
       logout()
-      toast.success('Account and photos deleted')
+      toast.success('Account deleted')
       navigate('/welcome', { replace: true })
     },
     onError: (error) =>
-      setDeleteError(error instanceof ApiError ? error.message : "Account wasn't deleted. Try again."),
+      setDeleteError(error instanceof ApiError ? error.message : "Couldn't delete. Try again."),
   })
 
   const passwordMutation = useMutation({
     mutationFn: () => api.users.changePassword(currentPassword, newPassword),
     onSuccess: () => {
-      toast.success('Password updated', 'Use your new password next time you sign in.')
+      toast.success('Password updated')
       setPasswordOpen(false)
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
     },
     onError: (error) =>
-      setPasswordError(error instanceof ApiError ? error.message : "Password wasn't updated"),
+      setPasswordError(error instanceof ApiError ? error.message : "Couldn't update password"),
   })
 
   if (!user) return null
-  const summary = summaryQuery.data
+
+  const uploadPhoto = async (blob: Blob, filename: string, previewUrl: string) => {
+    setPhotoPreview(previewUrl)
+    setPhotoBusy(true)
+    try {
+      updateUser(await api.users.uploadBasePhoto(blob, filename))
+      toast.success('Photo updated')
+    } catch (requestError) {
+      toast.error(requestError instanceof ApiError ? requestError.message : 'Upload failed')
+    } finally {
+      setPhotoPreview(null)
+      setPhotoBusy(false)
+    }
+  }
+
+  const saveMeasurement = async (measure: Measure, value: number): Promise<boolean> => {
+    if (value < measure.min || value > measure.max) {
+      toast.error(`${measure.label}: ${measure.min}–${measure.max} ${measure.unit}`)
+      return false
+    }
+    try {
+      updateUser(await api.users.update({ [measure.field]: value }))
+      return true
+    } catch (requestError) {
+      toast.error(requestError instanceof ApiError ? requestError.message : "Couldn't save. Try again.")
+      return false
+    }
+  }
 
   const submitPassword = (event: FormEvent) => {
     event.preventDefault()
@@ -86,250 +155,99 @@ export function ProfilePage() {
       return
     }
     if (newPassword.length < 8) {
-      setPasswordError('New password needs at least 8 characters')
+      setPasswordError('New password: 8+ characters')
       return
     }
     if (newPassword !== confirmPassword) {
-      setPasswordError("New passwords don't match")
+      setPasswordError("Passwords don't match")
       return
     }
     passwordMutation.mutate()
   }
 
+  const photo = user.base_photo_url || user.base_photo_thumb_url
+
   return (
-    <div className="page profile-page">
-      <header className="subpage-top">
-        <Brand />
-        <Badge tone="neutral">
-          <UserRound size={11} />
-          OUL MEMBER
-        </Badge>
+    <div className="page page--tab">
+      <header className="tab-head">
+        <div>
+          <p className="eyebrow">Your account</p>
+          <h1 className="tab-head__title">Profile</h1>
+        </div>
       </header>
 
-      <section className="profile-identity">
-        <Avatar
-          src={user.base_photo_thumb_url || user.base_photo_url}
-          name={user.display_name}
-          size="lg"
-        />
-        <div className="profile-identity__copy">
-          <p className="o-eyebrow">YOUR PRIVATE PROFILE</p>
-          <h1>{user.display_name}</h1>
-          <span>{user.email}</span>
+      <section className="profile-card">
+        <div className="profile-card__head">
+          <div>
+            <p className="eyebrow">Base photo</p>
+            <h2>Full-body reference</h2>
+          </div>
+          <span className={cn('status-pill', photo && 'is-done')}>{photo ? 'Added' : 'Required'}</span>
         </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          leftIcon={<Pencil size={14} />}
-          onClick={() => navigate('/me/edit')}
-        >
-          Edit
-        </Button>
+        <p className="profile-card__lede">Used to preview recommended outfits on you.</p>
+        <div className={cn('base-photo', photo && 'has-photo')}>
+          <ImagePicker
+            previewUrl={photoPreview ?? photo}
+            title="Add full-body photo"
+            subtitle="Front view · Good lighting"
+            aspect="tall"
+            variant="base"
+            disabled={photoBusy}
+            onSelect={(blob, filename, previewUrl) => void uploadPhoto(blob, filename, previewUrl)}
+          />
+        </div>
       </section>
 
-      <button
-        type="button"
-        className="profile-portrait"
-        onClick={() => navigate('/me/edit')}
-      >
-        {user.base_photo_url ? (
-          <>
-            <span
-              className="profile-portrait__backdrop"
-              style={{ backgroundImage: `url("${user.base_photo_url}")` }}
-              aria-hidden="true"
+      <section className="profile-card">
+        <p className="eyebrow">Body measurements</p>
+        <div className="measure-grid">
+          {MEASUREMENTS.map((measure) => (
+            <MeasureTile
+              key={`${measure.field}-${user[measure.field] ?? ''}`}
+              measure={measure}
+              value={user[measure.field]}
+              onSave={(value) => saveMeasurement(measure, value)}
             />
-            <img
-              className="profile-portrait__full"
-              src={user.base_photo_url}
-              alt="Your full-length base photo"
-            />
-          </>
-        ) : (
-          <span className="profile-portrait__empty">
-            <UserRound size={28} />
-            Add full-length base photo
-          </span>
-        )}
-        <span className="profile-portrait__shade" />
-        <span className="profile-portrait__badge">
-          <CheckCircle2 size={12} />
-          AI try-on portrait base
-        </span>
-        <span className="profile-portrait__caption">
-          <span className="serif">THE FOUNDATION</span>
-          <em>Used to create your private try-on</em>
-        </span>
-        <span className="profile-portrait__edit">
-          <Pencil size={14} />
-        </span>
-      </button>
-
-      <section className="profile-section">
-        <div className="profile-section__head">
-          <div>
-            <p className="o-eyebrow">BODY ARCHIVE</p>
-            <h2>Body profile</h2>
-          </div>
-          <button type="button" className="text-link" onClick={() => navigate('/me/edit')}>
-            Adjust
-            <ChevronRight size={14} />
-          </button>
-        </div>
-
-        <div className="body-stats">
-          <div>
-            <span>Height</span>
-            <strong>{user.height_cm ?? '—'}<em>{user.height_cm ? 'cm' : ''}</em></strong>
-          </div>
-          <div>
-            <span>Weight</span>
-            <strong>{user.weight_kg ?? '—'}<em>{user.weight_kg ? 'kg' : ''}</em></strong>
-          </div>
-          <div>
-            <span>Shoe size</span>
-            <strong>{user.shoe_size ?? '—'}<em>{user.shoe_size ? 'EU' : ''}</em></strong>
-          </div>
-        </div>
-
-        <div className="body-detail-grid">
-          <div>
-            <span>Chest / Waist / Hips</span>
-            <strong>
-              {user.chest_cm ?? '—'} / {user.waist_cm ?? '—'} / {user.hip_cm ?? '—'}
-              <em>cm</em>
-            </strong>
-          </div>
-          <div>
-            <span>Fit preference</span>
-            <strong>{fitLabel(user.fit_preference)}</strong>
-          </div>
-          <div>
-            <span>Body shape</span>
-            <strong>{user.body_shape || 'Not set'}</strong>
-          </div>
-          <div>
-            <span>Skin tone</span>
-            <strong>{user.skin_tone || 'Not set'}</strong>
-          </div>
-        </div>
-
-        <div className="profile-tag-block">
-          <div className="profile-tag-block__head">
-            <span>Style preferences</span>
-            <Sparkles size={13} />
-          </div>
-          {user.style_preferences.length ? (
-            <div className="chip-wrap">
-              {user.style_preferences.map((style) => (
-                <span key={style} className="o-chip is-selected o-chip--static">
-                  {style}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="profile-muted">No style preferences yet.</p>
-          )}
+          ))}
         </div>
       </section>
 
-      <section className="profile-section profile-section--wardrobe">
-        <div className="profile-section__head">
-          <div>
-            <p className="o-eyebrow">WARDROBE PULSE</p>
-            <h2>Wardrobe snapshot</h2>
-          </div>
-          <button type="button" className="text-link" onClick={() => navigate('/wardrobe')}>
-            Open wardrobe
-            <ArrowUpRight size={14} />
+      <section className="profile-card">
+        <div className="profile-card__head">
+          <p className="eyebrow">Style</p>
+          <button type="button" className="link link--muted" onClick={() => navigate('/me/edit')}>
+            Edit
           </button>
         </div>
-        {summaryQuery.isLoading ? (
-          <Skeleton className="profile-summary-skeleton" />
-        ) : (
-          <div className="profile-wardrobe-stats">
-            <div>
-              <Shirt size={18} />
-              <strong>{summary?.total ?? 0}</strong>
-              <span>Total items</span>
-            </div>
-            <div>
-              <CheckCircle2 size={18} />
-              <strong>{summary?.available ?? 0}</strong>
-              <span>Wearable now</span>
-            </div>
-            <div>
-              <Lock size={18} />
-              <strong>{summary?.forced ?? 0}</strong>
-              <span>Must-wear next</span>
-            </div>
-          </div>
-        )}
+        <div className="tag-line">
+          <span className="tag">{fitLabel(user.fit_preference)} fit</span>
+          {user.style_preferences.map((style) => (
+            <span key={style} className="tag">
+              {style}
+            </span>
+          ))}
+        </div>
       </section>
 
-      <section className="profile-section">
-        <div className="profile-section__head">
-          <div>
-            <p className="o-eyebrow">ACCOUNT & PRIVACY</p>
-            <h2>Account & privacy</h2>
-          </div>
-        </div>
-        <div className="profile-menu">
-          <button type="button" onClick={() => setPasswordOpen(true)}>
-            <span className="profile-menu__icon">
-              <KeyRound size={17} />
-            </span>
-            <span>
-              <strong>Change password</strong>
-              <em>Other signed-in devices stay logged in</em>
-            </span>
-            <ChevronRight size={16} />
-          </button>
-          <button type="button" onClick={() => setPrivacyOpen(true)}>
-            <span className="profile-menu__icon">
-              <ShieldCheck size={17} />
-            </span>
-            <span>
-              <strong>Photos & privacy</strong>
-              <em>See how your photos are stored and used</em>
-            </span>
-            <ChevronRight size={16} />
-          </button>
-          <button type="button" className="profile-menu__logout" onClick={() => {
+      <List className="profile-list">
+        <ListRow icon={<UserRoundPen size={18} />} title="Edit profile" onClick={() => navigate('/me/edit')} />
+        <ListRow icon={<KeyRound size={18} />} title="Change password" onClick={() => setPasswordOpen(true)} />
+        <ListRow icon={<ShieldCheck size={18} />} title="Privacy" onClick={() => setPrivacyOpen(true)} />
+        <ListRow
+          icon={<LogOut size={18} />}
+          title="Log out"
+          onClick={() => {
             logout()
             navigate('/welcome', { replace: true })
-          }}>
-            <span className="profile-menu__icon">
-              <LogOut size={17} />
-            </span>
-            <span>
-              <strong>Log out</strong>
-              <em>Your wardrobe and looks will be here next time</em>
-            </span>
-            <ChevronRight size={16} />
-          </button>
-          <button type="button" className="profile-menu__delete" onClick={() => setDeleteOpen(true)}>
-            <span className="profile-menu__icon">
-              <Trash2 size={17} />
-            </span>
-            <span>
-              <strong>Delete account</strong>
-              <em>Permanently removes your wardrobe, looks, and photos</em>
-            </span>
-            <ChevronRight size={16} />
-          </button>
-        </div>
-      </section>
-
-      <section className="profile-meta">
-        <div>
-          <span className="serif">OUL Studio</span>
-          <em>Version 1.0 · Built for your real wardrobe.</em>
-        </div>
-        <div className="profile-meta__joined">
-          Joined {formatCompactDate(user.created_at)}
-        </div>
-      </section>
+          }}
+        />
+        <ListRow
+          icon={<Trash2 size={18} />}
+          title="Delete account"
+          tone="danger"
+          onClick={() => setDeleteOpen(true)}
+        />
+      </List>
 
       <Sheet
         open={passwordOpen}
@@ -338,9 +256,8 @@ export function ProfilePage() {
           setPasswordError(null)
         }}
         title="Change password"
-        description="At least 8 characters. You'll stay signed in on this device."
       >
-        <form className="password-form" onSubmit={submitPassword}>
+        <form className="form-stack" onSubmit={submitPassword}>
           {passwordError && <InlineNotice tone="critical">{passwordError}</InlineNotice>}
           <TextField
             label="Current password"
@@ -353,19 +270,19 @@ export function ProfilePage() {
             label="New password"
             type="password"
             autoComplete="new-password"
+            placeholder="8+ characters"
             value={newPassword}
             onChange={(event) => setNewPassword(event.target.value)}
-            hint="At least 8 characters"
           />
           <TextField
-            label="Confirm new password"
+            label="Confirm"
             type="password"
             autoComplete="new-password"
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
           />
           <Button type="submit" full loading={passwordMutation.isPending}>
-            Update password
+            Update
           </Button>
         </form>
       </Sheet>
@@ -377,9 +294,18 @@ export function ProfilePage() {
           setDeletePassword('')
           setDeleteError(null)
         }}
-        title="Delete account permanently"
-        description="This removes your wardrobe, look history, and every uploaded photo. It can't be undone."
-        footer={
+        title="Delete account?"
+        description="Removes your wardrobe, looks and all photos. Can't be undone."
+      >
+        <div className="form-stack">
+          {deleteError && <InlineNotice tone="critical">{deleteError}</InlineNotice>}
+          <TextField
+            label="Password"
+            type="password"
+            autoComplete="current-password"
+            value={deletePassword}
+            onChange={(event) => setDeletePassword(event.target.value)}
+          />
           <Button
             full
             variant="danger"
@@ -387,61 +313,19 @@ export function ProfilePage() {
             onClick={() => {
               setDeleteError(null)
               if (!deletePassword) {
-                setDeleteError('Enter your password to confirm')
+                setDeleteError('Enter your password')
                 return
               }
               deleteMutation.mutate()
             }}
           >
-            Permanently delete my account
+            Delete forever
           </Button>
-        }
-      >
-        <div className="password-form">
-          {deleteError && <InlineNotice tone="critical">{deleteError}</InlineNotice>}
-          <InlineNotice tone="warning" icon={<Trash2 size={15} />}>
-            All private photos will be removed from the server and can't be recovered. Make sure you no longer need these looks.
-          </InlineNotice>
-          <TextField
-            label="Enter password to confirm"
-            type="password"
-            autoComplete="current-password"
-            value={deletePassword}
-            onChange={(event) => setDeletePassword(event.target.value)}
-          />
         </div>
       </Sheet>
 
-      <Sheet
-        open={privacyOpen}
-        onClose={() => setPrivacyOpen(false)}
-        title="Photos & privacy"
-        description="A short, clear note on how OUL handles your images."
-      >
-        <div className="legal-copy">
-          <h3>Private space</h3>
-          <p>
-            Wardrobe photos, your base photo, and try-on images live in OUL's local upload folder.
-            Every media file requires your sign-in credentials — no other account can open it.
-          </p>
-          <h3>AI composition</h3>
-          <p>
-            When you create a look or try-on, OUL sends your base photo and the relevant item photos
-            to Google Gemini for text planning and image composition. We never post your photos
-            publicly.
-          </p>
-          <h3>Your choices</h3>
-          <p>
-            You can delete items, delete looks, or permanently delete your account in settings at
-            any time. Deleting your account also removes your wardrobe, look history, and every
-            uploaded photo.
-          </p>
-          <h3>Limits</h3>
-          <p>
-            Styling advice is not a weather warning or outdoor safety guidance. In extreme weather,
-            follow local authorities first.
-          </p>
-        </div>
+      <Sheet open={privacyOpen} onClose={() => setPrivacyOpen(false)} title="Privacy">
+        <LegalCopy />
         <Button full variant="secondary" onClick={() => setPrivacyOpen(false)}>
           Close
         </Button>

@@ -59,6 +59,7 @@ interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string | null
   optional?: boolean
   trailing?: ReactNode
+  suffix?: string
   action?: ReactNode
   wrapperClassName?: string
 }
@@ -69,6 +70,7 @@ export function TextField({
   error,
   optional,
   trailing,
+  suffix,
   action,
   wrapperClassName,
   className,
@@ -87,14 +89,24 @@ export function TextField({
       action={action}
       className={wrapperClassName}
     >
-      <div className={cn('o-input-wrap', Boolean(trailing) && 'has-trailing')}>
+      <div
+        className={cn(
+          'o-input-wrap',
+          Boolean(trailing) && 'has-trailing',
+          !trailing && Boolean(suffix) && 'has-suffix',
+        )}
+      >
         <input
           id={fieldId}
           className={cn('o-input', className)}
           aria-invalid={Boolean(error) || undefined}
           {...rest}
         />
-        {trailing && <div className="o-input__trailing">{trailing}</div>}
+        {trailing ? (
+          <div className="o-input__trailing">{trailing}</div>
+        ) : (
+          suffix && <span className="o-input__suffix">{suffix}</span>
+        )}
       </div>
     </FieldShell>
   )

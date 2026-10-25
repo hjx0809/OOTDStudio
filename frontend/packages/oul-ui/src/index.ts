@@ -10,3 +10,4 @@ export {
   InlineNotice,
   SectionHeader,
 } from './Feedback'
+export { List, ListRow } from './List'

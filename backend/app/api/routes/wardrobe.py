@@ -32,6 +32,8 @@ from app.schemas.wardrobe import (
 )
 from app.services.gemini import GeminiError, gemini_service
 from app.services.storage import (
+    ITEM_IMAGE_SIZE,
+    ITEM_THUMB_SIZE,
     delete_stored_image,
     dominant_color,
     read_upload,
@@ -178,8 +180,8 @@ async def create_item(
         user.id,
         data,
         kind="items",
-        max_edge=1600,
-        thumb_edge=560,
+        size=ITEM_IMAGE_SIZE,
+        thumb_size=ITEM_THUMB_SIZE,
         quality=90,
     )
     clean_name = " ".join((name or "").split())[:120]
@@ -327,8 +329,8 @@ async def replace_image(
         user.id,
         data,
         kind="items",
-        max_edge=1600,
-        thumb_edge=560,
+        size=ITEM_IMAGE_SIZE,
+        thumb_size=ITEM_THUMB_SIZE,
         quality=90,
     )
     item.image_path = stored.path

@@ -33,6 +33,11 @@ UPLOAD_TYPE_LABELS = {
     "image/heif": "HEIF",
 }
 
+# Wardrobe photos are stored at one fixed 4:5 size (matching the closet cards)
+# so the closet grid and lookboards stay uniform.
+ITEM_IMAGE_SIZE = (1200, 1500)
+ITEM_THUMB_SIZE = (448, 560)
+
 
 @dataclass(frozen=True)
 class StoredImage:
@@ -68,7 +73,7 @@ async def read_upload(upload: UploadFile) -> bytes:
     return data
 
 
-def _normalize(data: bytes, max_edge: int, *, quality: int = 90) -> Image.Image:
+def _normalize(data: bytes, max_edge: int | None, *, quality: int = 90) -> Image.Image:
     try:
         with Image.open(io.BytesIO(data)) as opened:
             image = ImageOps.exif_transpose(opened)
@@ -94,8 +99,14 @@ def _normalize(data: bytes, max_edge: int, *, quality: int = 90) -> Image.Image:
     else:
         image = image.convert("RGB")
 
-    image.thumbnail((max_edge, max_edge), Image.Resampling.LANCZOS)
+    if max_edge is not None:
+        image.thumbnail((max_edge, max_edge), Image.Resampling.LANCZOS)
     return image
+
+
+def _fit(image: Image.Image, size: tuple[int, int]) -> Image.Image:
+    """Scale to cover `size`, then centre-crop whatever overflows."""
+    return ImageOps.fit(image, size, Image.Resampling.LANCZOS, centering=(0.5, 0.5))
 
 
 def _write_jpeg(image: Image.Image, destination: Path, *, quality: int = 90) -> None:
@@ -115,12 +126,20 @@ def store_user_image(
     max_edge: int = 1600,
     thumb_edge: int = 560,
     quality: int = 90,
+    size: tuple[int, int] | None = None,
+    thumb_size: tuple[int, int] | None = None,
 ) -> StoredImage:
-    """Store an image under a user-private folder plus a small grid thumbnail."""
+    """Store an image under a user-private folder plus a small grid thumbnail.
+
+    With `size`, the image is scaled to cover exactly that frame and the
+    overflow is centre-cropped; `thumb_size` does the same for the thumbnail.
+    """
     settings = get_settings()
     if kind not in {"base", "items", "looks"}:
         raise ValueError(f"Unsupported image kind: {kind}")
-    image = _normalize(data, max_edge)
+    image = _normalize(data, None if size else max_edge)
+    if size:
+        image = _fit(image, size)
     stem = stem or uuid.uuid4().hex
     relative = Path(user_id) / kind / f"{stem}.jpg"
     thumbnail_relative = Path(user_id) / kind / f"{stem}_thumb.jpg"
@@ -129,8 +148,11 @@ def store_user_image(
     thumb_destination = settings.upload_dir / thumbnail_relative
     _write_jpeg(image, full_destination, quality=quality)
 
-    thumb = image.copy()
-    thumb.thumbnail((thumb_edge, thumb_edge), Image.Resampling.LANCZOS)
+    if thumb_size:
+        thumb = _fit(image, thumb_size)
+    else:
+        thumb = image.copy()
+        thumb.thumbnail((thumb_edge, thumb_edge), Image.Resampling.LANCZOS)
     _write_jpeg(thumb, thumb_destination, quality=82)
 
     return StoredImage(path=relative.as_posix(), thumbnail_path=thumbnail_relative.as_posix())

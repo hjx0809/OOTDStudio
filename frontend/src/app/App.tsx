@@ -11,10 +11,8 @@ import { WelcomePage } from '@/pages/auth/WelcomePage'
 import { HomePage } from '@/pages/home/HomePage'
 import { LooksPage } from '@/pages/looks/LooksPage'
 import { OnboardingPage } from '@/pages/onboarding/OnboardingPage'
-import { HistoryPage } from '@/pages/profile/HistoryPage'
 import { ProfilePage } from '@/pages/profile/ProfilePage'
 import { ProfileEditPage } from '@/pages/profile/ProfileEditPage'
-import { StylePage } from '@/pages/style/StylePage'
 import { ItemEditorPage } from '@/pages/wardrobe/ItemEditorPage'
 import { WardrobePage } from '@/pages/wardrobe/WardrobePage'
 import { Button } from 'oul-ui'
@@ -67,15 +65,11 @@ function OnboardingGate() {
 function NotFoundPage() {
   const { user } = useAuth()
   return (
-    <div className="app-frame not-found">
-      <p className="o-eyebrow">404 / OFF THE RAIL</p>
-      <h1 className="serif">This page isn’t in the edit.</h1>
-      <p>This link may have expired — or this page was filed into another wardrobe.</p>
-      <div className="not-found__actions">
-        <Link to={user ? '/' : '/welcome'}>
-          <Button>{user ? 'Back to home' : 'Back to OUL'}</Button>
-        </Link>
-      </div>
+    <div className="app-frame splash">
+      <h1 className="splash__title">Page not found</h1>
+      <Link to={user ? '/' : '/welcome'}>
+        <Button>Go home</Button>
+      </Link>
     </div>
   )
 }
@@ -103,9 +97,7 @@ export default function App() {
                   <Route element={<AppShell />}>
                     <Route index element={<HomePage />} />
                     <Route path="/wardrobe" element={<WardrobePage />} />
-                    <Route path="/style" element={<StylePage />} />
                     <Route path="/me" element={<ProfilePage />} />
-                    <Route path="/history" element={<HistoryPage />} />
                   </Route>
 
                   <Route element={<BareLayout />}>
@@ -117,6 +109,7 @@ export default function App() {
                 </Route>
               </Route>
 
+              <Route path="/style" element={<Navigate to="/" replace />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </ToastProvider>

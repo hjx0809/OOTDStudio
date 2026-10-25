@@ -488,3 +488,30 @@ def test_gemini_planning_path_and_fallback(client, monkeypatch):
     assert fallback.status_code == 201
     assert fallback.json()["ai_source"] == "atelier"
     assert fallback.json()["outfits"]
+
+
+def test_wardrobe_photos_are_stored_at_one_size(client):
+    from app.core.config import get_settings
+    from app.services.storage import ITEM_IMAGE_SIZE, ITEM_THUMB_SIZE
+
+    token, user = register(client)
+    complete_profile(client, token)
+    headers = auth_headers(token)
+    upload_dir = get_settings().upload_dir
+
+    for size in [(3000, 1200), (200, 900), (1200, 1500)]:
+        response = client.post(
+            "/api/wardrobe",
+            headers=headers,
+            data={"category": "top"},
+            files={"image": ("photo.jpg", make_image((90, 110, 140), size), "image/jpeg")},
+        )
+        assert response.status_code == 201, response.text
+        item_id = response.json()["id"]
+        stored = list((upload_dir / user["id"] / "items").glob("*.jpg"))
+        assert stored
+        for path in stored:
+            with Image.open(path) as image:
+                expected = ITEM_THUMB_SIZE if path.stem.endswith("_thumb") else ITEM_IMAGE_SIZE
+                assert image.size == expected, (size, path.name, image.size)
+        client.delete(f"/api/wardrobe/{item_id}", headers=headers)

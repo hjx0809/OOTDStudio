@@ -1,85 +1,80 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import {
-  Heart,
-  Lock,
-  Plus,
-  Search,
-  Shirt,
-  Sparkles,
-} from 'lucide-react'
+import { Check, Lock, Minus, Plus, Shirt } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '@/app/ToastProvider'
-import { Brand } from '@/components/Brand'
 import { api } from '@/lib/api'
 import { queryKeys, useWardrobe } from '@/lib/queries'
 import { cn, CATEGORY_META } from '@/lib/utils'
 import type { Category, WardrobeItem } from '@/lib/types'
-import { Button, Chip, EmptyState, Skeleton } from 'oul-ui'
+import { Button, EmptyState, Skeleton } from 'oul-ui'
 
-type CategoryFilter = 'all' | Category
+type ClosetFilter = 'all' | 'favorites' | Category
 
 const CATEGORY_KEYS = Object.keys(CATEGORY_META) as Category[]
 
-const FILTERS: Array<{ value: CategoryFilter; label: string }> = [
-  { value: 'all', label: 'All' },
-  ...CATEGORY_KEYS.map((category) => ({
-    value: category,
-    label: CATEGORY_META[category].label,
-  })),
-]
+const CATEGORY_PLURALS: Record<Category, string> = {
+  top: 'Tops',
+  bottom: 'Bottoms',
+  dress: 'Dresses',
+  outerwear: 'Outerwear',
+  shoes: 'Shoes',
+  bag: 'Bags',
+  accessory: 'Accessories',
+}
 
-function WardrobeCard({
+function isDark(hex: string | null): boolean {
+  const match = hex?.match(/^#?([0-9a-f]{6})$/i)
+  if (!match) return false
+  const value = parseInt(match[1], 16)
+  const luminance = 0.299 * (value >> 16) + 0.587 * ((value >> 8) & 255) + 0.114 * (value & 255)
+  return luminance < 128
+}
+
+function ClosetCard({
   item,
   onOpen,
-  onFavorite,
-  favoriteBusy,
+  onToggle,
 }: {
   item: WardrobeItem
   onOpen: () => void
-  onFavorite: () => void
-  favoriteBusy: boolean
+  onToggle: () => void
 }) {
+  const meta = [item.material, item.color_name].filter(Boolean).join(' · ') || CATEGORY_PLURALS[item.category]
   return (
-    <article className={cn('item-card', !item.available && 'is-unavailable')}>
-      <button
-        type="button"
-        className="item-card__image"
-        onClick={onOpen}
-        aria-label={`Edit ${item.name}`}
-      >
-        <img src={item.image_url} alt={item.name} loading="lazy" />
-        <span className="item-card__shade" />
-        {!item.available && <span className="item-card__unavailable">Unavailable</span>}
-        <span className="item-card__category">{item.category_label}</span>
-        {item.force_include && (
-          <span className="item-card__force">
-            <Lock size={10} />
-            Must-wear
-          </span>
-        )}
-      </button>
-      <div className="item-card__actions">
-        <button
-          type="button"
-          className={cn('item-card__favorite', item.favorite && 'is-active')}
-          aria-label={item.favorite ? 'Remove from favorites' : 'Favorite this item'}
-          onClick={onFavorite}
-          disabled={favoriteBusy}
+    <div className={cn('closet-card', !item.available && 'is-unavailable')}>
+      <button type="button" className="closet-card__open" onClick={onOpen} aria-label={`Edit ${item.name}`}>
+        <span
+          className={cn('closet-card__image', !item.image_url && isDark(item.color_hex) && 'is-dark')}
+          style={!item.image_url && item.color_hex ? { background: item.color_hex } : undefined}
         >
-          <Heart size={16} fill={item.favorite ? 'currentColor' : 'none'} />
-        </button>
-      </div>
-      <button type="button" className="item-card__body" onClick={onOpen}>
-        <span className="item-card__name">{item.name}</span>
-        <span className="item-card__meta">
-          {item.color_name}
-          {item.brand ? ` · ${item.brand}` : ''}
-          <span className="item-card__dot" />
-          {item.formality >= 4 ? 'Formal' : item.formality >= 3 ? 'Workwear' : 'Casual'}
+          {item.image_url ? (
+            <img src={item.image_url} alt="" loading="lazy" />
+          ) : (
+            <span className="closet-card__placeholder">{CATEGORY_PLURALS[item.category]}</span>
+          )}
+          {item.force_include && (
+            <span className="closet-card__lock" title="Must-wear">
+              <Lock size={13} />
+            </span>
+          )}
+        </span>
+        <span className="closet-card__copy">
+          <strong>{item.name}</strong>
+          <span>{meta}</span>
         </span>
       </button>
-    </article>
+      <button
+        type="button"
+        className={cn('closet-card__status', !item.available && 'is-off')}
+        onClick={onToggle}
+        aria-pressed={item.available}
+        aria-label={`${item.name}: ${item.available ? 'available' : 'unavailable'}. Toggle availability`}
+        title={item.available ? 'Available — tap to mark unavailable' : 'Unavailable — tap to mark available'}
+      >
+        {item.available ? <Check size={18} strokeWidth={2.4} /> : <Minus size={18} strokeWidth={2.4} />}
+      </button>
+    </div>
   )
 }
 
@@ -88,187 +83,132 @@ export function WardrobePage() {
   const queryClient = useQueryClient()
   const toast = useToast()
   const { data, isLoading } = useWardrobe()
-  const [filter, setFilter] = useState<CategoryFilter>('all')
-  const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState<ClosetFilter>('all')
 
-  const items = data ?? []
-  const filtered = useMemo(() => {
-    const normalized = search.trim().toLowerCase()
-    return items.filter((item) => {
-      if (filter !== 'all' && item.category !== filter) return false
-      if (!normalized) return true
-      return [item.name, item.subcategory, item.color_name, item.brand, ...item.style_tags]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(normalized))
-    })
-  }, [items, filter, search])
-
-  const availableCount = items.filter((item) => item.available).length
-  const forcedCount = items.filter((item) => item.force_include).length
-
-  const favoriteMutation = useMutation({
-    mutationFn: ({ item }: { item: WardrobeItem }) =>
-      api.wardrobe.setFavorite(item.id, !item.favorite),
-    onSuccess: (updated) => {
+  const availabilityMutation = useMutation({
+    mutationFn: (item: WardrobeItem) => api.wardrobe.setAvailability(item.id, !item.available),
+    onMutate: async (item) => {
+      // Flip the badge immediately; roll back if the server rejects it.
+      await queryClient.cancelQueries({ queryKey: queryKeys.wardrobe })
+      const previous = queryClient.getQueryData<WardrobeItem[]>(queryKeys.wardrobe)
+      queryClient.setQueryData<WardrobeItem[]>(queryKeys.wardrobe, (current) =>
+        current?.map((entry) => (entry.id === item.id ? { ...entry, available: !item.available } : entry)),
+      )
+      return { previous }
+    },
+    onError: (_error, _item, context) => {
+      if (context?.previous) queryClient.setQueryData(queryKeys.wardrobe, context.previous)
+      toast.error("Couldn't save. Try again.")
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.wardrobe })
       queryClient.invalidateQueries({ queryKey: queryKeys.wardrobeSummary })
-      toast.toast({
-        title: updated.favorite ? 'Added to favorites' : 'Removed from favorites',
-      })
     },
-    onError: () => toast.error("Favorite didn't save. Try again."),
   })
 
+  const items = data ?? []
+  const filtered = useMemo(
+    () =>
+      items.filter((item) => {
+        if (filter === 'all') return true
+        if (filter === 'favorites') return item.favorite
+        return item.category === filter
+      }),
+    [items, filter],
+  )
+
+  const ready = items.filter((item) => item.available).length
+  const filters: Array<{ value: ClosetFilter; label: string }> = [
+    { value: 'all', label: 'All' },
+    { value: 'favorites', label: 'Favorites' },
+    ...CATEGORY_KEYS.filter((category) => items.some((item) => item.category === category)).map(
+      (category) => ({ value: category as ClosetFilter, label: CATEGORY_PLURALS[category] }),
+    ),
+  ]
+
   return (
-    <div className="page wardrobe-page">
-      <header className="subpage-top">
-        <Brand />
-        <Button
-          size="sm"
-          variant="primary"
-          leftIcon={<Plus size={15} />}
+    <div className="page page--tab">
+      <header className="tab-head">
+        <h1 className="tab-head__title">Closet</h1>
+        <button
+          type="button"
+          className="round-button round-button--dark"
+          aria-label="Add item"
           onClick={() => navigate('/wardrobe/new')}
         >
-          Add item
-        </Button>
+          <Plus size={24} />
+        </button>
       </header>
 
-      <section className="wardrobe-heading">
-        <p className="o-eyebrow">PRIVATE WARDROBE</p>
-        <h1>
-          Wardrobe<span className="wardrobe-heading__count">{items.length}</span>
-        </h1>
-        <p>What you actually own is what's worth styling.</p>
-      </section>
-
-      <div className="wardrobe-stats">
+      <div className="stat-tiles">
         <div>
-          <strong>{availableCount}</strong>
-          <span>available now</span>
+          <strong>{isLoading ? '—' : items.length}</strong>
+          <span>Items</span>
         </div>
         <div>
-          <strong>{forcedCount}</strong>
-          <span>must-wear next</span>
+          <strong>{isLoading ? '—' : ready}</strong>
+          <span>Ready</span>
         </div>
         <div>
-          <strong>{items.filter((item) => !item.available).length}</strong>
-          <span>in the wash or stored</span>
+          <strong>{isLoading ? '—' : items.length - ready}</strong>
+          <span>Unavailable</span>
         </div>
       </div>
 
-      <div className="wardrobe-toolbar">
-        <div className="wardrobe-search">
-          <Search size={16} />
-          <input
-            type="search"
-            placeholder="Search name, color or tag"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            aria-label="Search wardrobe"
-          />
-        </div>
-      </div>
-
-      <div className="filter-scroll" aria-label="Filter by category">
-        {FILTERS.map((option) => {
-          const count =
-            option.value === 'all'
-              ? items.length
-              : items.filter((item) => item.category === option.value).length
-          return (
-            <Chip
+      {items.length > 0 && (
+        <div className="plans__row" aria-label="Filter closet">
+          {filters.map((option) => (
+            <button
+              type="button"
               key={option.value}
-              selected={filter === option.value}
+              className={cn('plan-chip', filter === option.value && 'is-selected')}
+              aria-pressed={filter === option.value}
               onClick={() => setFilter(option.value)}
             >
               {option.label}
-              {count > 0 && <em className="chip-count">{count}</em>}
-            </Chip>
-          )
-        })}
-      </div>
+            </button>
+          ))}
+        </div>
+      )}
 
       {isLoading ? (
-        <div className="wardrobe-grid">
+        <div className="closet-grid">
           {[0, 1, 2, 3].map((index) => (
-            <div className="item-card-skeleton" key={index}>
-              <Skeleton className="item-card-skeleton__image" />
-              <Skeleton className="item-card-skeleton__line" />
-              <Skeleton className="item-card-skeleton__line item-card-skeleton__line--short" />
-            </div>
+            <Skeleton className="closet-card closet-card--skeleton" key={index} />
           ))}
         </div>
       ) : items.length === 0 ? (
         <EmptyState
-          icon={<Shirt size={22} />}
-          eyebrow="START WITH WHAT YOU WEAR"
-          title="Start with the three things you wear most"
-          description="Photograph a top, a bottom and a pair of shoes. The photos don't have to be perfect — a real wardrobe makes real looks."
+          icon={<Shirt size={24} />}
+          title="Your closet is empty"
+          description="Snap a top, a bottom and shoes to start."
           action={
             <Button leftIcon={<Plus size={16} />} onClick={() => navigate('/wardrobe/new')}>
-              Add your first item
+              Add item
             </Button>
           }
         />
       ) : filtered.length === 0 ? (
         <EmptyState
-          icon={<Search size={20} />}
-          title="No items found"
-          description="Try another keyword, or clear the category filter."
+          icon={<Shirt size={22} />}
+          title={filter === 'favorites' ? 'No favorites yet' : 'Nothing here'}
           action={
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                setFilter('all')
-                setSearch('')
-              }}
-            >
-              Clear filters
+            <Button variant="secondary" size="sm" onClick={() => setFilter('all')}>
+              Show all
             </Button>
           }
         />
       ) : (
-        <div className="wardrobe-grid">
+        <div className="closet-grid">
           {filtered.map((item) => (
-            <WardrobeCard
+            <ClosetCard
               key={item.id}
               item={item}
               onOpen={() => navigate(`/wardrobe/${item.id}`)}
-              onFavorite={() => favoriteMutation.mutate({ item })}
-              favoriteBusy={
-                favoriteMutation.isPending && favoriteMutation.variables?.item.id === item.id
-              }
+              onToggle={() => availabilityMutation.mutate(item)}
             />
           ))}
-          <button
-            type="button"
-            className="wardrobe-add-tile"
-            onClick={() => navigate('/wardrobe/new')}
-          >
-            <span>
-              <Plus size={20} />
-            </span>
-            <strong>Add item</strong>
-            <em>Capture a piece</em>
-          </button>
         </div>
-      )}
-
-      {items.length > 0 && (
-        <button type="button" className="wardrobe-styling-hint" onClick={() => navigate('/style')}>
-          <span className="wardrobe-styling-hint__icon">
-            <Sparkles size={17} />
-          </span>
-          <span>
-            <strong>Style looks from your wardrobe now</strong>
-            <em>
-              {availableCount} available
-              {forcedCount ? ` · ${forcedCount} must-wear` : ''}
-            </em>
-          </span>
-          <span className="wardrobe-styling-hint__arrow">→</span>
-        </button>
       )}
     </div>
   )

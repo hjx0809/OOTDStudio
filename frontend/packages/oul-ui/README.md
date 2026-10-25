@@ -9,9 +9,10 @@ contract locally.
 ## Components
 
 - Button / IconButton
-- TextField / TextAreaField / SelectField
+- TextField (with `suffix` units) / TextAreaField / SelectField
 - Chip / Switch / Segmented
 - Sheet (focusable, scroll-locking bottom sheet)
+- List / ListRow
 - Spinner / Skeleton / EmptyState / Avatar / Badge / InlineNotice / SectionHeader
 - Global OUL UI CSS with design tokens
 
@@ -22,6 +23,6 @@ import { Button, Sheet, TextField } from 'oul-ui'
 import 'oul-ui/oul.css'
 ```
 
-The visual language (warm paper, ink, acid lime, Instrument Serif + Manrope)
+The visual language (white space, black ink, hairline greys, Manrope)
 is intentionally coupled to the OUL Studio brand. It can be consumed by other
 OUL surfaces through the same package.

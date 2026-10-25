@@ -4,7 +4,7 @@ import { BottomNav } from './BottomNav'
 
 export function AppShell() {
   return (
-    <div className="app-frame">
+    <div className="app-frame app-frame--tabs">
       <main className="app-shell">
         <Outlet />
       </main>

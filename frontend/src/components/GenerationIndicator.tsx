@@ -27,30 +27,22 @@ export function GenerationIndicator() {
   const ready =
     data?.outfits.filter((outfit) => outfit.image_status === 'ready').length ?? 0
   const label = planning
-    ? "Picking tomorrow's look"
+    ? 'Styling your looks'
     : active.kind === 'render'
-      ? 'Refreshing your try-on'
-      : 'Creating your try-on'
-  const detail = planning
-    ? 'Feel free to browse — this keeps running in the background'
-    : total > 0
-      ? `${ready} of ${total} ready`
-      : 'Almost there'
+      ? 'Refreshing try-on'
+      : 'Creating try-on'
+  const detail = planning ? null : total > 0 ? `${ready}/${total}` : null
 
   return (
     <button
       type="button"
       className="generation-indicator"
       onClick={() => navigate(`/looks/${active.id}`)}
-      aria-label={`${label}, ${detail}. Tap to view.`}
+      aria-label={`${label}${detail ? `, ${detail} ready` : ''}. Tap to view.`}
     >
-      <span className="generation-indicator__spinner">
-        <Spinner size="sm" />
-      </span>
-      <span className="generation-indicator__copy">
-        <strong>{label}</strong>
-        <em>{detail}</em>
-      </span>
+      <Spinner size="sm" />
+      <span>{label}</span>
+      {detail && <em>{detail}</em>}
       <ChevronRight size={16} />
     </button>
   )

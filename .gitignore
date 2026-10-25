@@ -32,3 +32,6 @@ htmlcov/
 
 # --- os ---
 .DS_Store
+
+# --- typescript ---
+*.tsbuildinfo

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ipaddress
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -52,6 +53,8 @@ class _CacheEntry:
 
 _weather_cache: dict[tuple[float, float], _CacheEntry] = {}
 _geocode_cache: dict[str, tuple[float, list[GeocodeResult]]] = {}
+_ip_cache: dict[str, tuple[float, GeocodeResult]] = {}
+_IP_CACHE_SECONDS = 6 * 3600
 
 
 def _condition(code: int | None) -> tuple[str, str]:
@@ -143,24 +146,31 @@ async def geocode_city(query: str) -> list[GeocodeResult]:
     cached = _geocode_cache.get(normalized)
     if cached and cached[0] > time.monotonic():
         return cached[1]
+    # Open-Meteo only matches names in the requested language, so a city saved
+    # as "旧金山" finds nothing in English. Retry non-ASCII queries in Chinese.
+    languages = ["en"] if query.isascii() else ["en", "zh"]
+    rows: list[dict[str, Any]] = []
     try:
         async with httpx.AsyncClient(timeout=get_settings().weather_timeout_seconds) as client:
-            response = await client.get(
-                "https://geocoding-api.open-meteo.com/v1/search",
-                params={
-                    "name": query.strip(),
-                    "count": 6,
-                    "language": "en",
-                    "format": "json",
-                },
-            )
-            response.raise_for_status()
-            payload = response.json()
+            for language in languages:
+                response = await client.get(
+                    "https://geocoding-api.open-meteo.com/v1/search",
+                    params={
+                        "name": query.strip(),
+                        "count": 6,
+                        "language": language,
+                        "format": "json",
+                    },
+                )
+                response.raise_for_status()
+                rows = response.json().get("results") or []
+                if rows:
+                    break
     except (httpx.HTTPError, ValueError) as exc:
         raise HTTPException(status_code=502, detail="City search is temporarily unavailable") from exc
 
     results: list[GeocodeResult] = []
-    for row in payload.get("results") or []:
+    for row in rows:
         try:
             results.append(
                 GeocodeResult(
@@ -176,6 +186,74 @@ async def geocode_city(query: str) -> list[GeocodeResult]:
             continue
     _geocode_cache[normalized] = (time.monotonic() + 86_400, results)
     return results
+
+
+def public_ip(candidates: list[str | None]) -> str | None:
+    """First globally routable address, skipping loopback/private hops."""
+    for candidate in candidates:
+        try:
+            address = ipaddress.ip_address((candidate or "").strip())
+        except ValueError:
+            continue
+        if address.is_global:
+            return str(address)
+    return None
+
+
+def _from_ipwhois(payload: dict[str, Any]) -> GeocodeResult | None:
+    if not payload.get("success"):
+        return None
+    timezone = payload.get("timezone")
+    return GeocodeResult(
+        name=payload.get("city") or payload.get("region") or payload.get("country") or "",
+        admin1=payload.get("region"),
+        country=payload.get("country"),
+        latitude=float(payload["latitude"]),
+        longitude=float(payload["longitude"]),
+        timezone=timezone.get("id") if isinstance(timezone, dict) else None,
+    )
+
+
+def _from_geojs(payload: dict[str, Any]) -> GeocodeResult | None:
+    if payload.get("latitude") in (None, "") or payload.get("longitude") in (None, ""):
+        return None
+    return GeocodeResult(
+        name=payload.get("city") or payload.get("region") or payload.get("country") or "",
+        admin1=payload.get("region"),
+        country=payload.get("country"),
+        latitude=float(payload["latitude"]),
+        longitude=float(payload["longitude"]),
+        timezone=payload.get("timezone"),
+    )
+
+
+async def locate_ip(ip: str | None) -> GeocodeResult:
+    """Approximate city for an IP. ``None`` locates the server's own public IP,
+    which is the right answer when the app runs on the user's machine."""
+    cache_key = ip or ""
+    cached = _ip_cache.get(cache_key)
+    if cached and cached[0] > time.monotonic():
+        return cached[1]
+
+    providers = [
+        (f"https://ipwho.is/{ip or ''}", _from_ipwhois),
+        (f"https://get.geojs.io/v1/ip/geo{'/' + ip if ip else ''}.json", _from_geojs),
+    ]
+    async with httpx.AsyncClient(timeout=get_settings().weather_timeout_seconds) as client:
+        for url, parse in providers:
+            try:
+                response = await client.get(url)
+                response.raise_for_status()
+                result = parse(response.json())
+            except (httpx.HTTPError, ValueError, KeyError, TypeError):
+                continue
+            if result is not None:
+                _ip_cache[cache_key] = (time.monotonic() + _IP_CACHE_SECONDS, result)
+                return result
+    raise HTTPException(
+        status_code=502,
+        detail="Couldn’t detect your location. Set a city in your profile or enter the weather manually.",
+    )
 
 
 def weather_summary(weather: WeatherSnapshotLike) -> str:

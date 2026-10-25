@@ -1,307 +1,454 @@
-import {
-  ArrowUpRight,
-  Lock,
-  MapPin,
-  Plus,
-  Shirt,
-  Sparkles,
-} from 'lucide-react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { ArrowRight, Check, ChevronRight, Lock, Plus, Sparkles, UserRound } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/app/AuthProvider'
-import { Brand } from '@/components/Brand'
-import { WeatherIcon, weatherHeadline } from '@/components/WeatherIcon'
-import { useHistory, useWardrobe, useWeather } from '@/lib/queries'
+import { useToast } from '@/app/ToastProvider'
 import {
-  CATEGORY_META,
-  formatDateLabel,
-  formatRelative,
+  ManualWeatherFields,
+  emptyManualWeather,
+  manualFromWeather,
+  weatherFromManual,
+  type ManualWeatherState,
+} from '@/components/ManualWeather'
+import { WeatherIcon } from '@/components/WeatherIcon'
+import { api, ApiError } from '@/lib/api'
+import { trackGeneration } from '@/lib/generation'
+import { queryKeys, useHistory, useWardrobe, useWeather } from '@/lib/queries'
+import type { OccasionType, RecommendationSummary, Weather, WardrobeItem } from '@/lib/types'
+import {
+  OCCASION_META,
+  cn,
+  formatLookDate,
   getGreetingName,
   greeting,
-  tomorrowISO,
+  inferOccasionType,
+  pluralLooks,
 } from '@/lib/utils'
-import {
-  Avatar,
-  Badge,
-  Button,
-  EmptyState,
-  SectionHeader,
-  Skeleton,
-} from 'oul-ui'
+import { Avatar, Button, InlineNotice, Sheet, Skeleton, Spinner } from 'oul-ui'
+
+interface Plan {
+  label: string
+  type: OccasionType
+}
+
+const POPULAR_PLANS: Plan[] = [
+  { label: 'Job interview', type: 'interview' },
+  { label: 'Office day', type: 'work' },
+  { label: 'Dinner date', type: 'date' },
+  { label: 'City weekend', type: 'outdoor' },
+  { label: 'Night out', type: 'party' },
+  { label: 'Travel day', type: 'travel' },
+  { label: 'Wedding guest', type: 'formal' },
+]
+
+const MAX_OCCASION = 200
+
+function windLabel(speed: number): string {
+  if (speed < 12) return 'Light wind'
+  if (speed < 30) return 'Breezy'
+  return 'Windy'
+}
+
+function weatherDetail(weather: Weather): string {
+  const extra =
+    weather.precipitation_probability >= 30
+      ? `${Math.round(weather.precipitation_probability)}% rain`
+      : windLabel(weather.wind_speed)
+  return `${weather.condition} · ${extra}`
+}
+
+function PlanRow({
+  label,
+  plans,
+  selectedKey,
+  onSelect,
+}: {
+  label: string
+  plans: Plan[]
+  selectedKey: string | null
+  onSelect: (key: string, plan: Plan) => void
+}) {
+  return (
+    <section className="plans">
+      <h2 className="eyebrow">{label}</h2>
+      <div className="plans__row">
+        {plans.map((plan) => {
+          const key = `${label}:${plan.label}`
+          const selected = selectedKey === key
+          return (
+            <button
+              type="button"
+              key={key}
+              className={cn('plan-chip', selected && 'is-selected')}
+              aria-pressed={selected}
+              onClick={() => onSelect(key, plan)}
+            >
+              {plan.label}
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+function historyStatus(look: RecommendationSummary): string {
+  if (look.status === 'planning') return 'Styling…'
+  if (look.status === 'failed') return 'Didn’t finish'
+  if (look.status === 'wardrobe_gap' || look.look_count === 0) return 'Needs more pieces'
+  return pluralLooks(look.look_count)
+}
+
+function LookHistory({
+  looks,
+  loading,
+}: {
+  looks: RecommendationSummary[]
+  loading: boolean
+}) {
+  return (
+    <section className="history">
+      <div className="history__head">
+        <h2 className="eyebrow">Your looks</h2>
+        {looks.length > 0 && <span>{looks.length} saved</span>}
+      </div>
+      {loading ? (
+        <div className="history__list">
+          {[0, 1, 2].map((index) => (
+            <Skeleton key={index} className="history-row history-row--skeleton" />
+          ))}
+        </div>
+      ) : looks.length === 0 ? (
+        <p className="muted">Looks you generate are saved here.</p>
+      ) : (
+        <div className="history__list">
+          {looks.map((look) => (
+            <Link key={look.id} to={`/looks/${look.id}`} className="history-row">
+              <span className="history-row__thumb">
+                {look.cover_image_url ? (
+                  <img src={look.cover_image_url} alt="" loading="lazy" />
+                ) : look.status === 'planning' ? (
+                  <Spinner size="sm" />
+                ) : (
+                  <Sparkles size={20} strokeWidth={1.6} />
+                )}
+              </span>
+              <span className="history-row__copy">
+                <strong>{look.occasion}</strong>
+                <span>
+                  {OCCASION_META[look.occasion_type]?.label ?? 'Look'} · {historyStatus(look)} ·{' '}
+                  {formatLookDate(look.created_at)}
+                </span>
+              </span>
+              <ChevronRight size={18} className="history-row__chevron" />
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
 
 export function HomePage() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const toast = useToast()
   const weatherQuery = useWeather(user)
   const wardrobeQuery = useWardrobe()
   const historyQuery = useHistory(Boolean(user))
-  const weather = weatherQuery.data
+  const [planKey, setPlanKey] = useState<string | null>(null)
+  const [plan, setPlan] = useState<Plan | null>(null)
+  const [details, setDetails] = useState('')
+  const [manual, setManual] = useState<ManualWeatherState | null>(null)
+  const [weatherOpen, setWeatherOpen] = useState(false)
+  const [draft, setDraft] = useState<ManualWeatherState>(() => emptyManualWeather(user?.city ?? ''))
+  const [weatherError, setWeatherError] = useState<string | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const mounted = useRef(true)
+
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
 
   const items = wardrobeQuery.data ?? []
-  const recentItems = items.slice(0, 5)
   const looks = historyQuery.data ?? []
-  const firstName = user ? getGreetingName(user.display_name) : ''
-  const tomorrow = new Date(`${tomorrowISO()}T12:00:00`)
+  const availableItems = items.filter((item) => item.available)
+  const forcedItems = availableItems.filter((item) => item.force_include)
+  // The API lists must-wear items first; the picker needs a stable order so a
+  // tile doesn't jump away from the finger after it is toggled.
+  const pickerItems = [...availableItems].sort(
+    (a, b) => b.created_at.localeCompare(a.created_at) || a.id.localeCompare(b.id),
+  )
+  const autoWeather = weatherQuery.data ?? null
+  const weather = manual ? weatherFromManual(manual, user?.city ?? null) : autoWeather
+
+  const frequentPlans = useMemo(() => {
+    const counts = new Map<string, Plan & { count: number }>()
+    for (const look of looks) {
+      const label = look.occasion.trim()
+      const key = label.toLowerCase()
+      if (!label) continue
+      const entry = counts.get(key)
+      if (entry) entry.count += 1
+      else counts.set(key, { label, type: look.occasion_type, count: 1 })
+    }
+    return [...counts.values()].sort((a, b) => b.count - a.count).slice(0, 6)
+  }, [looks])
+
+  const missingBasics = useMemo(() => {
+    const categories = new Set(availableItems.map((item) => item.category))
+    const missing: string[] = []
+    if (!categories.has('top') && !categories.has('dress')) missing.push('top')
+    if (!categories.has('bottom') && !categories.has('dress')) missing.push('bottom')
+    if (!categories.has('shoes')) missing.push('shoes')
+    return missing
+  }, [availableItems])
+
+  const forceMutation = useMutation({
+    mutationFn: (item: WardrobeItem) => api.wardrobe.setForce(item.id, !item.force_include),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.wardrobe })
+      queryClient.invalidateQueries({ queryKey: queryKeys.wardrobeSummary })
+    },
+    onError: () => toast.error("Couldn't save. Try again."),
+  })
 
   if (!user) return null
 
+  const trimmedDetails = details.trim()
+  const occasion = (
+    plan ? (trimmedDetails ? `${plan.label}. ${trimmedDetails}` : plan.label) : trimmedDetails
+  ).slice(0, MAX_OCCASION)
+  const canGenerate = occasion.length >= 2
+
+  const selectPlan = (key: string, next: Plan) => {
+    setError(null)
+    if (planKey === key) {
+      setPlanKey(null)
+      setPlan(null)
+    } else {
+      setPlanKey(key)
+      setPlan(next)
+    }
+  }
+
+  const openWeather = (message: string | null = null) => {
+    setDraft(
+      manual ?? (autoWeather ? manualFromWeather(autoWeather, user.city ?? '') : emptyManualWeather(user.city ?? '')),
+    )
+    setWeatherError(message)
+    setWeatherOpen(true)
+  }
+
+  const applyWeather = () => {
+    if (!weatherFromManual(draft, user.city)) {
+      setWeatherError('Add low, high and feels-like temperatures')
+      return
+    }
+    setManual(draft)
+    setWeatherOpen(false)
+  }
+
+  const generate = async () => {
+    setError(null)
+    if (!canGenerate) return
+    if (!weather) {
+      openWeather('Add tomorrow’s weather first')
+      return
+    }
+    setSubmitting(true)
+    try {
+      const recommendation = await api.recommendations.create({
+        occasion,
+        occasion_type: plan?.type ?? inferOccasionType(trimmedDetails),
+        weather,
+        forced_item_ids: forcedItems.map((item) => item.id),
+        outfit_count: 3,
+      })
+      queryClient.setQueryData(queryKeys.recommendation(recommendation.id), recommendation)
+      queryClient.invalidateQueries({ queryKey: queryKeys.history })
+      // The POST returns a pending job immediately; track it globally so it
+      // keeps polling (and stays visible) even if the user moves elsewhere.
+      trackGeneration(recommendation.id, 'looks')
+      if (mounted.current) navigate(`/looks/${recommendation.id}`)
+    } catch (requestError) {
+      setError(
+        requestError instanceof ApiError ? requestError.message : 'Generation failed. Try again.',
+      )
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const photo = user.base_photo_thumb_url || user.base_photo_url
+
   return (
-    <div className="page home-page">
-      <header className="home-top">
-        <Brand />
-        <button
-          type="button"
-          className="home-top__avatar"
-          onClick={() => navigate('/me')}
-          aria-label="Open my profile"
-        >
-          <Avatar
-            src={user.base_photo_thumb_url || user.base_photo_url}
-            name={user.display_name}
-            size="md"
-          />
-          <span className="home-top__status" />
-        </button>
+    <div className="page page--tab">
+      <header className="for-you__head">
+        <p className="for-you__greeting">
+          {greeting()}, {getGreetingName(user.display_name)}
+        </p>
+        <Link to="/me" className="round-button" aria-label="Open profile">
+          {photo ? <Avatar src={photo} name={user.display_name} size="md" /> : <UserRound size={22} />}
+        </Link>
       </header>
 
-      <section className="home-greeting">
-        <div className="home-greeting__date">
-          <span>{formatDateLabel()}</span>
-          <span className="home-greeting__dot" />
-          <span>{user.city || 'Current location'}</span>
-        </div>
-        <h1>
-          {greeting()}, {firstName}
-          <span className="home-greeting__accent">.</span>
-        </h1>
-        <p>Plan tomorrow's look tonight, and walk out easy in the morning.</p>
-      </section>
+      <h1 className="display-title">What are you dressing for?</h1>
 
-      <section className="weather-panel" aria-label="Tomorrow's weather">
-        {weatherQuery.isLoading ? (
-          <div className="weather-panel__loading">
-            <Skeleton className="weather-panel__skeleton-icon" />
-            <div>
-              <Skeleton className="weather-panel__skeleton-line" />
-              <Skeleton className="weather-panel__skeleton-line weather-panel__skeleton-line--short" />
-            </div>
-          </div>
-        ) : weatherQuery.isError || !weather ? (
-          <button
-            type="button"
-            className="weather-panel__empty"
-            onClick={() => navigate('/me/edit')}
-          >
-            <span className="weather-panel__icon">
-              <MapPin size={21} />
+      {weatherQuery.isLoading && !manual ? (
+        <Skeleton className="weather-card weather-card--skeleton" />
+      ) : weather ? (
+        <button type="button" className="weather-card" onClick={() => openWeather()}>
+          <span className="weather-card__icon">
+            <WeatherIcon condition={weather.condition} size={24} strokeWidth={1.5} />
+          </span>
+          <span className="weather-card__copy">
+            <span className="eyebrow">
+              {weather.city || user.city || 'Tomorrow'} · {manual ? 'Your forecast' : 'Tomorrow'}
             </span>
-            <span className="weather-panel__empty-copy">
-              <strong>Set your city to see tomorrow's weather</strong>
-              <span>Weather shapes fabric, layers, and shoes</span>
-            </span>
-            <ArrowUpRight size={17} />
-          </button>
-        ) : (
-          <>
-            <div className="weather-panel__main">
-              <span className="weather-panel__icon">
-                <WeatherIcon condition={weather.condition} size={25} />
-              </span>
-              <div className="weather-panel__temp">
-                <span className="o-eyebrow">TOMORROW · {formatDateLabel(tomorrow)}</span>
-                <strong>
-                  {Math.round(weather.temp_min)}°
-                  <span>/ {Math.round(weather.temp_max)}°</span>
-                </strong>
-                <em>
-                  {weatherHeadline(weather)} · {weather.condition}
-                </em>
-              </div>
-            </div>
-            <div className="weather-panel__meta">
-              <span>
-                <MapPin size={12} />
-                {weather.city || user.city || 'Current location'}
-              </span>
-              <span>{weather.precipitation_probability}% rain</span>
-              {weather.wind_speed >= 25 && <span>{Math.round(weather.wind_speed)} km/h wind</span>}
-            </div>
-          </>
-        )}
-      </section>
-
-      <section className="home-hero">
-        <div className="home-hero__art" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </div>
-        <div className="home-hero__content">
-          <div className="home-hero__meta">
-            <span className="o-eyebrow home-hero__eyebrow">THE TOMORROW EDIT</span>
-            <Badge tone="accent">AI STYLING</Badge>
-          </div>
-          <h2 className="serif">
-            Tomorrow,
-            <br />
-            already <em>considered.</em>
-          </h2>
-          <p>
-            Tell OUL the occasion. It composes three looks from your wardrobe and puts you in the
-            try-on.
-          </p>
-          <div className="home-hero__actions">
-            <Button
-              variant="accent"
-              rightIcon={<ArrowUpRight size={17} />}
-              onClick={() => navigate('/style')}
-            >
-              Start tomorrow's look
-            </Button>
-            <span className="home-hero__looks">03 LOOKS · SWIPE TO CHOOSE</span>
-          </div>
-        </div>
-        <div className="home-hero__seal">
-          <Sparkles size={14} />
-          <span>{weather ? `${Math.round(weather.apparent_temp)}°C` : 'OUL'}</span>
-        </div>
-      </section>
-
-      <section className="home-section">
-        <SectionHeader
-          eyebrow="YOUR WARDROBE"
-          title="Wardrobe at a glance"
-          action={
-            <Link to="/wardrobe" className="text-link">
-              All {items.length > 0 ? items.length : ''}
-              <ArrowUpRight size={14} />
-            </Link>
-          }
-        />
-        {wardrobeQuery.isLoading ? (
-          <div className="wardrobe-rail">
-            {[0, 1, 2, 3].map((index) => (
-              <Skeleton className="wardrobe-rail__skeleton" key={index} />
-            ))}
-          </div>
-        ) : recentItems.length === 0 ? (
-          <EmptyState
-            icon={<Shirt size={21} />}
-            title="Start with a few favorites"
-            description="One top, one bottom, and a pair of shoes is enough for OUL to start styling."
-            action={
-              <Button
-                size="sm"
-                leftIcon={<Plus size={15} />}
-                onClick={() => navigate('/wardrobe/new')}
-              >
-                Add your first item
-              </Button>
-            }
-          />
-        ) : (
-          <div className="wardrobe-rail">
-            {recentItems.map((item) => (
-              <button
-                type="button"
-                className="wardrobe-rail__item"
-                key={item.id}
-                onClick={() => navigate(`/wardrobe/${item.id}`)}
-              >
-                <span className="wardrobe-rail__image">
-                  <img src={item.image_url} alt={item.name} loading="lazy" />
-                  {item.force_include && (
-                    <span className="wardrobe-rail__lock">
-                      <Lock size={10} />
-                    </span>
-                  )}
-                </span>
-                <span className="wardrobe-rail__name">{item.name}</span>
-                <span className="wardrobe-rail__meta">
-                  {CATEGORY_META[item.category].label}
-                </span>
-              </button>
-            ))}
-            <button
-              type="button"
-              className="wardrobe-rail__add"
-              onClick={() => navigate('/wardrobe/new')}
-            >
-              <Plus size={19} />
-              <span>Add item</span>
-            </button>
-          </div>
-        )}
-      </section>
-
-      <section className="home-section home-section--last">
-        <SectionHeader
-          eyebrow="RECENT EDITS"
-          title="Recent looks"
-          action={
-            looks.length > 0 ? (
-              <Link to="/history" className="text-link">
-                All
-                <ArrowUpRight size={14} />
-              </Link>
-            ) : undefined
-          }
-        />
-        {historyQuery.isLoading ? (
-          <div className="look-rail">
-            <Skeleton className="look-rail__skeleton" />
-            <Skeleton className="look-rail__skeleton" />
-          </div>
-        ) : looks.length === 0 ? (
-          <button type="button" className="recent-empty" onClick={() => navigate('/style')}>
-            <span className="recent-empty__icon">
-              <Sparkles size={18} />
-            </span>
+            <strong>{weatherDetail(weather)}</strong>
+          </span>
+          <span className="weather-card__temp">
+            <strong>{Math.round(weather.apparent_temp)}°</strong>
             <span>
-              <strong>No looks yet</strong>
-              <em>Create your first tomorrow edit and see how far your wardrobe can go.</em>
+              H {Math.round(weather.temp_max)}° · L {Math.round(weather.temp_min)}°
             </span>
-            <ArrowUpRight size={17} />
-          </button>
+          </span>
+        </button>
+      ) : (
+        <button type="button" className="weather-card" onClick={() => openWeather()}>
+          <span className="weather-card__icon">
+            <Plus size={22} strokeWidth={1.6} />
+          </span>
+          <span className="weather-card__copy">
+            <span className="eyebrow">Weather</span>
+            <strong>Add tomorrow’s forecast</strong>
+          </span>
+        </button>
+      )}
+
+      {frequentPlans.length > 0 && (
+        <PlanRow
+          label="Your frequent plans"
+          plans={frequentPlans}
+          selectedKey={planKey}
+          onSelect={selectPlan}
+        />
+      )}
+      <PlanRow label="Popular plans" plans={POPULAR_PLANS} selectedKey={planKey} onSelect={selectPlan} />
+
+      <button type="button" className="must-wear" onClick={() => setPickerOpen(true)}>
+        <Lock size={18} strokeWidth={1.8} />
+        <strong>Must-wear pieces</strong>
+        {forcedItems.length > 0 ? (
+          <span className="must-wear__picked">
+            {forcedItems.slice(0, 3).map((item) => (
+              <img key={item.id} src={item.image_url} alt="" />
+            ))}
+            <span>{forcedItems.length}</span>
+            <ArrowRight size={14} />
+          </span>
         ) : (
-          <div className="look-rail">
-            {looks.slice(0, 4).map((look) => (
+          <span className="must-wear__action">
+            Choose items <ArrowRight size={14} />
+          </span>
+        )}
+      </button>
+
+      <div className="composer">
+        {error && <InlineNotice tone="critical">{error}</InlineNotice>}
+        <textarea
+          className="composer__input"
+          aria-label="Describe your plans"
+          placeholder="Tell me when, where, and what you have planned. Include anything you want to wear."
+          value={details}
+          maxLength={MAX_OCCASION}
+          rows={4}
+          onChange={(event) => {
+            setDetails(event.target.value)
+            setError(null)
+          }}
+        />
+        <Button
+          className="composer__submit"
+          disabled={!canGenerate}
+          loading={submitting}
+          rightIcon={!submitting ? <ArrowRight size={18} /> : undefined}
+          onClick={generate}
+        >
+          Generate looks
+        </Button>
+      </div>
+
+      {missingBasics.length > 0 && !wardrobeQuery.isLoading && (
+        <InlineNotice tone="warning">
+          Your closet is missing {missingBasics.join(', ')} —{' '}
+          <Link to="/wardrobe/new" className="link">
+            add
+          </Link>
+        </InlineNotice>
+      )}
+
+      <LookHistory looks={looks} loading={historyQuery.isLoading} />
+
+      <Sheet open={weatherOpen} onClose={() => setWeatherOpen(false)} title="Tomorrow’s weather">
+        <div className="form-stack">
+          {weatherError && <InlineNotice tone="critical">{weatherError}</InlineNotice>}
+          <ManualWeatherFields state={draft} onChange={setDraft} />
+          <Button full onClick={applyWeather}>
+            Use this weather
+          </Button>
+          {manual && autoWeather && (
+            <Button
+              full
+              variant="secondary"
+              onClick={() => {
+                setManual(null)
+                setWeatherOpen(false)
+              }}
+            >
+              Back to forecast
+            </Button>
+          )}
+        </div>
+      </Sheet>
+
+      <Sheet open={pickerOpen} onClose={() => setPickerOpen(false)} title="Must-wear pieces">
+        {availableItems.length === 0 ? (
+          <p className="muted">No available items yet.</p>
+        ) : (
+          <div className="pick-grid">
+            {pickerItems.map((item) => (
               <button
                 type="button"
-                className="look-rail__item"
-                key={look.id}
-                onClick={() => navigate(`/looks/${look.id}`)}
+                key={item.id}
+                className={cn('pick-grid__item', item.force_include && 'is-selected')}
+                aria-pressed={item.force_include}
+                aria-label={item.name}
+                disabled={forceMutation.isPending && forceMutation.variables?.id === item.id}
+                onClick={() => forceMutation.mutate(item)}
               >
-                <span className="look-rail__image">
-                  {look.cover_image_url ? (
-                    <img src={look.cover_image_url} alt={look.occasion} loading="lazy" />
-                  ) : (
-                    <span className="look-rail__pending">
-                      <Sparkles size={18} />
-                    </span>
-                  )}
-                  <span className="look-rail__shade" />
-                  <span className="look-rail__badge">
-                    {look.status === 'planning'
-                      ? 'Styling'
-                      : look.status === 'failed'
-                        ? 'Unfinished'
-                        : `${look.look_count} looks`}
+                <img src={item.image_url} alt="" loading="lazy" />
+                {item.force_include && (
+                  <span className="pick-grid__check">
+                    <Check size={13} />
                   </span>
-                </span>
-                <span className="look-rail__title">{look.occasion}</span>
-                <span className="look-rail__meta">
-                  {formatRelative(look.created_at)} · {look.weather.condition}
-                </span>
+                )}
               </button>
             ))}
           </div>
         )}
-      </section>
-
-      <footer className="home-footer">
-        <span className="serif">Good style is a quiet decision.</span>
-        <span>OUL STUDIO · {new Date().getFullYear()}</span>
-      </footer>
+        <Button full onClick={() => setPickerOpen(false)}>
+          Done
+        </Button>
+      </Sheet>
     </div>
   )
 }

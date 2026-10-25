@@ -6,53 +6,30 @@ import { IconButton } from 'oul-ui'
 
 interface PageHeaderProps {
   title?: string
-  eyebrow?: string
   backTo?: string
   onBack?: () => void
   action?: ReactNode
-  center?: boolean
   className?: string
-  transparent?: boolean
 }
 
-export function PageHeader({
-  title,
-  eyebrow,
-  backTo,
-  onBack,
-  action,
-  center = false,
-  className,
-  transparent = false,
-}: PageHeaderProps) {
+/** Sub-page header: back · centered title · optional action. */
+export function PageHeader({ title, backTo, onBack, action, className }: PageHeaderProps) {
   const navigate = useNavigate()
   return (
-    <header
-      className={cn(
-        'page-header',
-        center && 'page-header--center',
-        transparent && 'page-header--transparent',
-        className,
-      )}
-    >
-      <div className="page-header__side">
-        <IconButton
-          label="Back"
-          variant={transparent ? 'dark' : 'surface'}
-          onClick={() => {
-            if (onBack) onBack()
-            else if (backTo) navigate(backTo)
-            else navigate(-1)
-          }}
-        >
-          <ArrowLeft size={19} />
-        </IconButton>
-      </div>
-      <div className="page-header__titles">
-        {eyebrow && <span className="page-header__eyebrow">{eyebrow}</span>}
-        {title && <h1 className="page-header__title">{title}</h1>}
-      </div>
-      <div className="page-header__side page-header__side--end">{action}</div>
+    <header className={cn('page-header', className)}>
+      <IconButton
+        label="Back"
+        onClick={() => {
+          if (onBack) onBack()
+          else if (backTo) navigate(backTo)
+          else navigate(-1)
+        }}
+      >
+        <ArrowLeft size={20} />
+      </IconButton>
+      {title && <h1 className="page-header__title">{title}</h1>}
+      <div className="page-header__action">{action}</div>
     </header>
   )
 }
+

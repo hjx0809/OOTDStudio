@@ -260,6 +260,10 @@ export const api = {
       if (city) query.set('city', city)
       return request<Weather>(`/weather/tomorrow?${query}`, { timeoutMs: 15_000 })
     },
+    /** Tomorrow's forecast for the caller's approximate (IP-based) location. */
+    auto() {
+      return request<Weather>('/weather/auto', { timeoutMs: 20_000 })
+    },
     geocode(q: string) {
       return request<
         Array<{

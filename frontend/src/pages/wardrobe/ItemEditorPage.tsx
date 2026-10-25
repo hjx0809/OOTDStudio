@@ -1,12 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  Check,
-  Heart,
-  Lock,
-  Sparkles,
-  Trash2,
-  WandSparkles,
-} from 'lucide-react'
+import { Check, ChevronDown, Trash2, WandSparkles } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useToast } from '@/app/ToastProvider'
@@ -15,12 +8,9 @@ import { PageHeader } from '@/components/PageHeader'
 import { api, ApiError } from '@/lib/api'
 import { queryKeys } from '@/lib/queries'
 import {
-  CATEGORY_META,
   CATEGORY_OPTIONS,
-  SEASON_LABELS,
   SEASON_OPTIONS,
   STYLE_OPTIONS,
-  cn,
   currentSeason,
 } from '@/lib/utils'
 import type {
@@ -33,54 +23,24 @@ import type {
 import {
   Button,
   Chip,
+  IconButton,
   InlineNotice,
+  Segmented,
+  Sheet,
   Skeleton,
   Switch,
   TextAreaField,
   TextField,
 } from 'oul-ui'
 
-const FORMALITY_LABELS = ['Loungewear', 'Casual', 'Workwear', 'Formal', 'Black tie']
-const WARMTH_LABELS = ['Ultra light', 'Light', 'Medium', 'Warm', 'Heavy']
-
-function ValueScale({
-  value,
-  onChange,
-  labels,
-  title,
-  hint,
-}: {
-  value: number
-  onChange: (value: number) => void
-  labels: string[]
-  title: string
-  hint: string
-}) {
-  return (
-    <div className="value-scale">
-      <div className="value-scale__head">
-        <span className="value-scale__title">{title}</span>
-        <span className="value-scale__value">{labels[value - 1]}</span>
-      </div>
-      <div className="value-scale__steps" role="radiogroup" aria-label={title}>
-        {labels.map((label, index) => (
-          <button
-            key={label}
-            type="button"
-            role="radio"
-            aria-checked={value === index + 1}
-            className={cn('value-scale__step', value === index + 1 && 'is-active')}
-            onClick={() => onChange(index + 1)}
-          >
-            <span>{index + 1}</span>
-            <em>{label}</em>
-          </button>
-        ))}
-      </div>
-      <p>{hint}</p>
-    </div>
-  )
-}
+const FORMALITY_OPTIONS = ['Lounge', 'Casual', 'Smart', 'Formal', 'Gala'].map((label, index) => ({
+  value: String(index + 1),
+  label,
+}))
+const WARMTH_OPTIONS = ['Airy', 'Light', 'Mid', 'Warm', 'Heavy'].map((label, index) => ({
+  value: String(index + 1),
+  label,
+}))
 
 function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
   const editing = Boolean(item)
@@ -139,21 +99,17 @@ function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
         }
         return updated
       }
-      if (!imageBlob) throw new ApiError('Add a photo of this item first', 422)
+      if (!imageBlob) throw new ApiError('Add a photo first', 422)
       return api.wardrobe.create(payload, imageBlob, imageName)
     },
     onSuccess: (saved) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.wardrobe })
       queryClient.invalidateQueries({ queryKey: queryKeys.wardrobeSummary })
-      toast.success(editing ? 'Item updated' : 'Item added to your wardrobe', saved.name)
+      toast.success(editing ? 'Saved' : 'Added', saved.name)
       navigate('/wardrobe', { replace: true })
     },
     onError: (requestError) => {
-      setError(
-        requestError instanceof ApiError
-          ? requestError.message
-          : "Couldn't save. Please try again.",
-      )
+      setError(requestError instanceof ApiError ? requestError.message : "Couldn't save. Try again.")
     },
   })
 
@@ -162,7 +118,7 @@ function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.wardrobe })
       queryClient.invalidateQueries({ queryKey: queryKeys.wardrobeSummary })
-      toast.success('Removed from your wardrobe')
+      toast.success('Removed')
       navigate('/wardrobe', { replace: true })
     },
     onError: () => toast.error("Couldn't delete. Try again."),
@@ -186,14 +142,13 @@ function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
       if (result.name && !nameEdited.current) {
         setName(result.name)
       }
-      toast.success('Photo scanned', result.available ? 'AI filled in what it could — adjust anything you like.' : 'Main color captured. Please add the category.')
     } catch (requestError) {
       setAnalysis({
         available: false,
         reason:
           requestError instanceof ApiError
             ? requestError.message
-            : "We couldn't read this photo automatically. Please fill it in manually.",
+            : "Couldn't auto-fill — fill in manually",
         name: null,
         category: null,
         subcategory: null,
@@ -228,317 +183,250 @@ function ItemEditorForm({ item }: { item: WardrobeItem | null }) {
   }
 
   return (
-    <div className="editor-page">
+    <div className="page page--bare">
       <PageHeader
-        title={editing ? 'Edit item' : 'Add item'}
-        eyebrow={editing ? 'WARDROBE PIECE' : 'NEW WARDROBE PIECE'}
+        title={editing ? 'Edit item' : 'New item'}
         backTo="/wardrobe"
+        action={
+          editing && (
+            <IconButton label="Delete item" onClick={() => setDeleteOpen(true)}>
+              <Trash2 size={18} />
+            </IconButton>
+          )
+        }
       />
 
-      <div className="editor-page__intro">
-        <p className="o-eyebrow">CAPTURE THE REAL PIECE</p>
-        <h1>
-          {editing ? 'Make this item more accurate.' : 'Photograph the one you actually wear.'}
-        </h1>
-        <p>The background doesn't need to be perfect. If the color, cut and fabric read clearly, that's enough.</p>
-      </div>
+      {error && <InlineNotice tone="critical">{error}</InlineNotice>}
 
-      {error && (
-        <InlineNotice tone="critical" className="editor-page__notice">
-          {error}
-        </InlineNotice>
+      <ImagePicker
+        previewUrl={preview}
+        title="Add a photo"
+        subtitle="AI fills in the details"
+        aspect="square"
+        variant="garment"
+        onSelect={(blob, filename, previewUrl) => {
+          setImageBlob(blob)
+          setImageName(filename)
+          setPreview(previewUrl)
+          void analyze(blob, filename)
+        }}
+      />
+      {(analyzing || analysis) && (
+        <p className="ai-status">
+          {analyzing ? (
+            <>
+              <span className="o-spinner o-spinner--sm" />
+              Reading photo…
+            </>
+          ) : analysis?.available ? (
+            <>
+              <Check size={14} />
+              Auto-filled
+            </>
+          ) : (
+            <>
+              <WandSparkles size={14} />
+              {analysis?.reason}
+            </>
+          )}
+        </p>
       )}
 
-      <div className="editor-image-block">
-        <ImagePicker
-          previewUrl={preview}
-          title={editing ? 'Replace item photo' : 'Photograph this item'}
-          subtitle="Flat lay, on a hanger or worn — all fine. Just keep other people out of frame."
-          aspect="square"
-          variant="garment"
-          onSelect={(blob, filename, previewUrl) => {
-            setImageBlob(blob)
-            setImageName(filename)
-            setPreview(previewUrl)
-            void analyze(blob, filename)
+      <div className="form-stack">
+        <div className="field-block">
+          <span className="o-field__label">Category</span>
+          <div className="chip-wrap">
+            {CATEGORY_OPTIONS.map((option) => (
+              <Chip
+                key={option.value}
+                selected={category === option.value}
+                onClick={() => setCategory(option.value)}
+              >
+                {option.label}
+              </Chip>
+            ))}
+          </div>
+        </div>
+
+        <TextField
+          label="Name"
+          placeholder="e.g. Charcoal wool blazer"
+          value={name}
+          maxLength={120}
+          onChange={(event) => {
+            nameEdited.current = true
+            setName(event.target.value)
           }}
         />
-        <div className="editor-image-aside">
-          <div className="ai-reader">
-            <span className="ai-reader__icon">
-              {analyzing ? <span className="o-spinner o-spinner--sm" /> : <WandSparkles size={18} />}
-            </span>
-            <strong>{analyzing ? 'Reading the details' : 'AI wardrobe assistant'}</strong>
-            <p>
-              {analyzing
-                ? 'Detecting category, color and formality…'
-                : "Upload a photo and we'll suggest category, color and formality. You can change anything."}
-            </p>
-          </div>
-          {analysis && (
-            <p className={cn('ai-result', analysis.available ? 'is-success' : 'is-neutral')}>
-              {analysis.available ? <Check size={13} /> : <Sparkles size={13} />}
-              {analysis.available ? 'Auto-filled — adjust as needed' : analysis.reason}
-            </p>
-          )}
+
+        <div className="color-row">
+          <TextField
+            label="Color"
+            placeholder="e.g. Charcoal"
+            value={colorName}
+            maxLength={60}
+            onChange={(event) => setColorName(event.target.value)}
+          />
+          <label className="color-swatch" style={{ background: colorHex || '#8C8C84' }}>
+            <input
+              type="color"
+              value={colorHex || '#8C8C84'}
+              onChange={(event) => setColorHex(event.target.value.toUpperCase())}
+              aria-label="Pick main color"
+            />
+          </label>
         </div>
+
+        <div className="field-block">
+          <span className="o-field__label">Formality</span>
+          <Segmented
+            options={FORMALITY_OPTIONS}
+            value={String(formality)}
+            onChange={(value) => setFormality(Number(value))}
+            ariaLabel="Formality"
+          />
+        </div>
+
+        <div className="field-block">
+          <span className="o-field__label">Warmth</span>
+          <Segmented
+            options={WARMTH_OPTIONS}
+            value={String(warmth)}
+            onChange={(value) => setWarmth(Number(value))}
+            ariaLabel="Warmth"
+          />
+        </div>
+
+        <div className="field-block">
+          <span className="o-field__label">Seasons</span>
+          <div className="chip-wrap">
+            {SEASON_OPTIONS.map((season) => (
+              <Chip
+                key={season.value}
+                selected={seasons.includes(season.value)}
+                onClick={() => toggleSeason(season.value)}
+              >
+                {season.label}
+              </Chip>
+            ))}
+          </div>
+        </div>
+
+        <div className="toggle-list">
+          <Switch
+            checked={available}
+            onChange={(checked) => {
+              setAvailable(checked)
+              if (!checked) setForceInclude(false)
+            }}
+            label="Available"
+            description="Off = in the wash or lent out"
+          />
+          <Switch
+            checked={forceInclude}
+            onChange={setForceInclude}
+            label="Must-wear"
+            description="Include in your next looks"
+            disabled={!available}
+          />
+          <Switch checked={favorite} onChange={setFavorite} label="Favorite" />
+        </div>
+
+        <details className="more">
+          <summary>
+            More details
+            <ChevronDown size={16} />
+          </summary>
+          <div className="form-stack">
+            <div className="field-block">
+              <span className="o-field__label">
+                Style tags
+                <span className="o-field__optional">{styleTags.length}/6</span>
+              </span>
+              <div className="chip-wrap">
+                {STYLE_OPTIONS.map((style) => (
+                  <Chip
+                    key={style}
+                    selected={styleTags.includes(style)}
+                    onClick={() => toggleStyle(style)}
+                  >
+                    {style}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+            <div className="form-row">
+              <TextField
+                label="Type"
+                placeholder="e.g. Shirt"
+                value={subcategory}
+                maxLength={80}
+                onChange={(event) => setSubcategory(event.target.value)}
+              />
+              <TextField
+                label="Brand"
+                value={brand}
+                maxLength={80}
+                onChange={(event) => setBrand(event.target.value)}
+              />
+            </div>
+            <TextField
+              label="Material"
+              placeholder="e.g. Wool"
+              value={material}
+              maxLength={80}
+              onChange={(event) => setMaterial(event.target.value)}
+            />
+            <TextAreaField
+              label="Notes"
+              value={notes}
+              maxLength={1000}
+              onChange={(event) => setNotes(event.target.value)}
+            />
+          </div>
+        </details>
       </div>
 
-      <section className="editor-section">
-        <div className="editor-section__head">
-          <span className="editor-section__index">01</span>
-          <h2>The basics</h2>
-        </div>
-
-        <div className="editor-section__body">
-          <div className="form-field-block">
-            <span className="o-field__label">Category</span>
-            <div className="category-picker">
-              {CATEGORY_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={cn('category-pick', category === option.value && 'is-active')}
-                  onClick={() => setCategory(option.value)}
-                  aria-pressed={category === option.value}
-                >
-                  <span className="category-pick__abbr">{option.role}</span>
-                  <span>{CATEGORY_META[option.value].label}</span>
-                  {category === option.value && <Check size={12} />}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <TextField
-            label="Item name"
-            placeholder="e.g. Charcoal wool blazer"
-            value={name}
-            maxLength={120}
-            onChange={(event) => {
-              nameEdited.current = true
-              setName(event.target.value)
-            }}
-            optional
-          />
-
-          <div className="form-row">
-            <TextField
-              label="Subcategory"
-              placeholder="Shirt / straight-leg trousers"
-              value={subcategory}
-              maxLength={80}
-              onChange={(event) => setSubcategory(event.target.value)}
-              optional
-            />
-            <TextField
-              label="Brand"
-              placeholder="Optional"
-              value={brand}
-              maxLength={80}
-              onChange={(event) => setBrand(event.target.value)}
-              optional
-            />
-          </div>
-
-          <div className="color-field-row">
-            <TextField
-              label="Color name"
-              placeholder="e.g. Charcoal"
-              value={colorName}
-              maxLength={60}
-              onChange={(event) => setColorName(event.target.value)}
-              optional
-            />
-            <label className="color-swatch-field">
-              <span>Main color</span>
-              <span className="color-swatch-field__control">
-                <input
-                  type="color"
-                  value={colorHex || '#8C8C84'}
-                  onChange={(event) => setColorHex(event.target.value.toUpperCase())}
-                  aria-label="Choose the item's main color"
-                />
-                <em>{colorHex || '#8C8C84'}</em>
-              </span>
-            </label>
-          </div>
-
-          <TextField
-            label="Material"
-            placeholder="Wool / cotton / leather…"
-            value={material}
-            maxLength={80}
-            onChange={(event) => setMaterial(event.target.value)}
-            optional
-          />
-        </div>
-      </section>
-
-      <section className="editor-section">
-        <div className="editor-section__head">
-          <span className="editor-section__index">02</span>
-          <h2>Formality and warmth</h2>
-        </div>
-        <div className="editor-section__body">
-          <ValueScale
-            title="Formality"
-            value={formality}
-            onChange={setFormality}
-            labels={FORMALITY_LABELS}
-            hint="Helps us judge whether it works for interviews, the office or weekends."
-          />
-          <ValueScale
-            title="Warmth"
-            onChange={setWarmth}
-            value={warmth}
-            labels={WARMTH_LABELS}
-            hint="Thicker isn't better — right for tomorrow's feels-like temperature is."
-          />
-        </div>
-      </section>
-
-      <section className="editor-section">
-        <div className="editor-section__head">
-          <span className="editor-section__index">03</span>
-          <h2>Season and style</h2>
-        </div>
-        <div className="editor-section__body">
-          <div className="form-field-block">
-            <span className="o-field__label">Seasons</span>
-            <div className="chip-wrap">
-              {SEASON_OPTIONS.map((season) => (
-                <Chip
-                  key={season.value}
-                  selected={seasons.includes(season.value)}
-                  onClick={() => toggleSeason(season.value)}
-                >
-                  {SEASON_LABELS[season.value]}
-                </Chip>
-              ))}
-            </div>
-          </div>
-          <div className="form-field-block">
-            <span className="o-field__label">Style tags</span>
-            <div className="chip-wrap">
-              {STYLE_OPTIONS.map((style) => (
-                <Chip
-                  key={style}
-                  selected={styleTags.includes(style)}
-                  onClick={() => toggleStyle(style)}
-                >
-                  {style}
-                </Chip>
-              ))}
-            </div>
-            <p className="o-field__hint">Up to 6 — they help us understand how you wear it.</p>
-          </div>
-          <TextAreaField
-            label="Notes"
-            placeholder="e.g. Sleeves run long; dry clean only; most often worn with black trousers."
-            value={notes}
-            maxLength={1000}
-            onChange={(event) => setNotes(event.target.value)}
-            optional
-          />
-        </div>
-      </section>
-
-      <section className="editor-section">
-        <div className="editor-section__head">
-          <span className="editor-section__index">04</span>
-          <h2>Availability</h2>
-        </div>
-        <div className="editor-section__body">
-          <div className="settings-list">
-            <Switch
-              checked={available}
-              onChange={(checked) => {
-                setAvailable(checked)
-                if (!checked) setForceInclude(false)
-              }}
-              label="Available now"
-              description="Items in the wash, lent out or simply off-duty are left out of your next recommendation."
-            />
-            <Switch
-              checked={forceInclude}
-              onChange={setForceInclude}
-              label="Must-wear for the next look"
-              description="OUL will include this piece in your next set of looks — and will tell you if it clashes with the occasion."
-              disabled={!available}
-            />
-            <Switch
-              checked={favorite}
-              onChange={setFavorite}
-              label="Favorite this item"
-              description="Favorites don't affect recommendations — they're just a marker for the pieces you love."
-            />
-          </div>
-          {forceInclude && (
-            <InlineNotice tone="info" icon={<Lock size={16} />}>
-              Must-wear pieces appear in your next set of looks. If one clashes with the
-              weather or occasion, OUL keeps it in and suggests how to make it work.
-            </InlineNotice>
-          )}
-        </div>
-      </section>
-
-      {editing && (
-        <button type="button" className="danger-row" onClick={() => setDeleteOpen(true)}>
-          <Trash2 size={16} />
-          Remove this item from your wardrobe
-        </button>
-      )}
-
-      <footer className="editor-footer">
-        <div className="editor-footer__meta">
-          {favorite ? <Heart size={13} fill="currentColor" /> : <Sparkles size={13} />}
-          <span>{preview ? 'Photo ready' : 'One photo to go'}</span>
-        </div>
+      <footer className="sticky-footer">
         <Button
           size="lg"
+          full
           loading={saveMutation.isPending}
+          disabled={analyzing}
           onClick={() => {
             setError(null)
             if (!preview) {
-              setError('Photograph this item or choose one from your library first')
+              setError('Add a photo first')
               window.scrollTo({ top: 0, behavior: 'smooth' })
               return
             }
             saveMutation.mutate()
           }}
         >
-          {editing ? 'Save changes' : 'Add to wardrobe'}
+          {editing ? 'Save' : 'Add to closet'}
         </Button>
       </footer>
 
-      {deleteOpen && (
-        <div className="inline-modal" role="dialog" aria-modal="true" aria-label="Confirm removing item">
-          <button
-            type="button"
-            className="inline-modal__backdrop"
-            aria-label="Cancel"
-            onClick={() => setDeleteOpen(false)}
-          />
-          <div className="inline-modal__panel">
-            <p className="o-eyebrow">REMOVE FROM WARDROBE</p>
-            <h3>Remove “{item?.name}”?</h3>
-            <p>Past looks will keep this piece in their history, but it won't appear in new recommendations.</p>
-            <div className="inline-modal__actions">
-              <Button variant="secondary" onClick={() => setDeleteOpen(false)}>
-                Keep it
-              </Button>
-              <Button
-                variant="danger"
-                loading={deleteMutation.isPending}
-                onClick={() => deleteMutation.mutate()}
-              >
-                Remove
-              </Button>
-            </div>
-          </div>
+      <Sheet
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        title={`Remove “${item?.name}”?`}
+        description="Past looks keep it; new looks won't use it."
+      >
+        <div className="button-row">
+          <Button variant="secondary" full onClick={() => setDeleteOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            full
+            loading={deleteMutation.isPending}
+            onClick={() => deleteMutation.mutate()}
+          >
+            Remove
+          </Button>
         </div>
-      )}
+      </Sheet>
     </div>
   )
 }
@@ -555,24 +443,18 @@ export function ItemEditorPage() {
 
   if (editing && itemQuery.isLoading) {
     return (
-      <div className="editor-page">
+      <div className="page page--bare">
         <PageHeader title="Edit item" backTo="/wardrobe" />
-        <div className="editor-loading">
-          <Skeleton className="editor-loading__image" />
-          <Skeleton className="editor-loading__line" />
-          <Skeleton className="editor-loading__line editor-loading__line--short" />
-        </div>
+        <Skeleton className="image-picker image-picker--square" />
       </div>
     )
   }
 
   if (editing && (itemQuery.isError || !itemQuery.data)) {
     return (
-      <div className="editor-page">
+      <div className="page page--bare">
         <PageHeader title="Edit item" backTo="/wardrobe" />
-        <InlineNotice tone="critical">
-          We couldn't find this item — it may have been removed from your wardrobe.
-        </InlineNotice>
+        <InlineNotice tone="critical">This item no longer exists.</InlineNotice>
       </div>
     )
   }

@@ -6,32 +6,19 @@ import { Button, Spinner } from 'oul-ui'
 export function SplashScreen({ error, onRetry }: { error?: string | null; onRetry?: () => void }) {
   return (
     <div className="app-frame splash">
-      <div className="splash__grain" aria-hidden="true" />
-      <div className="splash__center">
-        <Brand to="/" light compact />
-        <p className="splash__wordmark serif">Tomorrow, styled.</p>
-        {error ? (
-          <div className="splash__error">
-            <p>{error}</p>
-            {onRetry && (
-              <Button
-                variant="accent"
-                size="sm"
-                leftIcon={<RotateCcw size={15} />}
-                onClick={onRetry}
-              >
-                Reconnect
-              </Button>
-            )}
-          </div>
-        ) : (
-          <span className="splash__loader">
-            <Spinner size="sm" label="Opening OUL" />
-            Opening your wardrobe
-          </span>
-        )}
-      </div>
-      <p className="splash__footnote">PRIVATE WARDROBE · PERSONAL STYLING · AI TRY-ON</p>
+      <Brand />
+      {error ? (
+        <div className="splash__error">
+          <p>{error}</p>
+          {onRetry && (
+            <Button size="sm" variant="secondary" leftIcon={<RotateCcw size={15} />} onClick={onRetry}>
+              Retry
+            </Button>
+          )}
+        </div>
+      ) : (
+        <Spinner size="sm" label="Loading" />
+      )}
     </div>
   )
 }
@@ -54,12 +41,11 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBound
   render() {
     if (this.state.hasError) {
       return (
-        <div className="app-frame fatal-error">
-          <Brand to="/" />
-          <p className="o-eyebrow">SOMETHING WENT QUIET</p>
-          <h1>This page wandered off</h1>
-          <p>Refresh and everything will be right where you left it — wardrobe and looks included.</p>
-          <Button onClick={() => window.location.reload()}>Reload OUL</Button>
+        <div className="app-frame splash">
+          <h1 className="splash__title">Something went wrong</h1>
+          <Button onClick={() => window.location.reload()} leftIcon={<RotateCcw size={16} />}>
+            Reload
+          </Button>
         </div>
       )
     }

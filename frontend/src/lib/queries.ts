@@ -30,7 +30,7 @@ export function useWardrobeSummary() {
 export function useWeather(user: User | null) {
   return useQuery({
     queryKey: queryKeys.weather(user),
-    enabled: Boolean(user && (user.city || (user.latitude !== null && user.longitude !== null))),
+    enabled: Boolean(user),
     staleTime: 15 * 60 * 1000,
     retry: 1,
     queryFn: async () => {
@@ -38,13 +38,14 @@ export function useWeather(user: User | null) {
       if (user.latitude !== null && user.longitude !== null) {
         return api.weather.tomorrow(user.latitude, user.longitude, user.city)
       }
-      if (!user.city) throw new ApiError('No city set yet', 400)
-      const matches = await api.weather.geocode(user.city)
-      if (!matches.length) {
-        throw new ApiError(`Couldn’t find “${user.city}” — double-check the city name`, 404)
+      if (user.city) {
+        const matches = await api.weather.geocode(user.city).catch(() => [])
+        if (matches.length) {
+          return api.weather.tomorrow(matches[0].latitude, matches[0].longitude, user.city)
+        }
       }
-      const match = matches[0]
-      return api.weather.tomorrow(match.latitude, match.longitude, user.city)
+      // No usable saved location: locate the user by IP address.
+      return api.weather.auto()
     },
   })
 }

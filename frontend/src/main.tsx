@@ -1,5 +1,4 @@
 import '@fontsource-variable/manrope'
-import '@fontsource/instrument-serif/400.css'
 import '@/styles/tokens.css'
 import 'oul-ui/oul.css'
 import '@/styles/app.css'
